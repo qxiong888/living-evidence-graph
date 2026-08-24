@@ -299,7 +299,7 @@ def main() -> int:
 body{{font-family:system-ui,sans-serif;max-width:960px;margin:32px auto;color:#122;padding:0 16px}}
 .banner{{background:#fff3cd;border:1px solid #e6c200;padding:12px;border-radius:8px;margin:12px 0}}
 .spine{{background:#e8f5e9;border:1px solid #81c784;padding:12px;border-radius:8px;margin:12px 0}}
-.attr{{background:#fffde7;border:1px solid #fbc02d;padding:12px;border-radius:8px;margin:12px 0;font-size:13px}} /* Elena yellow-light */
+.attr{{background:#fffde7;border:1px solid #fbc02d;padding:12px;border-radius:8px;margin:12px 0;font-size:13px}} 
 table{{border-collapse:collapse;width:100%}} th,td{{border:1px solid #ccc;padding:6px 8px;font-size:14px}}
 th{{background:#f4f6f8;text-align:left}} code{{font-size:12px}}
 .meta{{color:#456}} h2.spine-h{{color:#1b5e20}}

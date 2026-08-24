@@ -107,7 +107,7 @@ def render_html(result: dict) -> str:
 </style>
 </head>
 <body>
-  <div class="banner"><strong>Elena yellow-light:</strong> {disc}</div>
+  <div class="banner"><strong>Disclaimer:</strong> {disc}</div>
   <h1>Living Evidence Graph — RAG retrieval demo</h1>
   <p class="meta">Generated {ts} · graph=<code>{gp}</code> · Gemini {gemini} ·
   retrieval-only (no fine-tuning)</p>

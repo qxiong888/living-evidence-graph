@@ -133,7 +133,7 @@ def test_score_retracted_penalty():
     assert s < s2
 
 
-def test_disclaimer_elena_posture():
+def test_disclaimer_safety_posture():
     assert "not a medical product" in DISCLAIMER.lower()
     assert "not causation" in DISCLAIMER.lower() or "not rates" in DISCLAIMER.lower()
     assert "retrieval-only" in DISCLAIMER.lower()

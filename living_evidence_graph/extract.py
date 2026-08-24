@@ -12,7 +12,7 @@ Core motif (Open Targets + ChEMBL spine):
   drug_targets_gene · gene_associated_with_disease · drug_indicated_for_disease
 Corroboration layers: ClinicalTrials, PubMed, openFDA, DailyMed, Europe PMC.
 
-Elena red lines: public data only; no causation; FAERS = reports not rates;
+Safety constraints: public data only; no causation; FAERS = reports not rates;
 LLM path is retrieval-oriented over the graph (no abstract/full-text dumps).
 """
 
@@ -1230,7 +1230,7 @@ def _gemini_structure_from_sources(
     prompt = (
         "You structure a living evidence graph from the SOURCE DIGEST JSON below.\n"
         "Return ONLY JSON matching the schema (nodes + edges + optional summary).\n"
-        "Elena red lines:\n"
+        "Safety constraints:\n"
         "- Public records only (already in the digest)\n"
         "- Do NOT invent NCT IDs, PMIDs, setids, ChEMBL/Ensembl IDs, or FDA counts\n"
         "- Do NOT claim causation or incidence rates\n"
