@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from living_evidence_graph.agent import daily_refresh, ingest_goal
+from living_evidence_graph.changes import diff, digest_document, load_digest, load_snapshot
 from living_evidence_graph.config import DEMO_GOAL, GEMINI_MODEL
+from living_evidence_graph.graph_store import load_graph
 from living_evidence_graph.rag import DISCLAIMER, rag_compare
 
 app = FastAPI(
@@ -18,7 +20,8 @@ app = FastAPI(
         "Text-first living evidence graph for LLM use. "
         "Default demo: pembrolizumab / Keytruda (NSCLC). "
         "Public data only — not a medical product. "
-        "POST /rag = retrieval-augmented answer (graph edges only; no fine-tuning)."
+        "POST /rag = retrieval-augmented answer (graph edges only; no fine-tuning). "
+        "GET /changes = human-readable change digest (what / why / sources)."
     ),
     version="0.1.0",
 )
@@ -45,6 +48,7 @@ def health() -> dict[str, Any]:
         "demo_vertical": "pembrolizumab / Keytruda / NSCLC",
         "phi": False,
         "rag": True,
+        "changes": True,
     }
 
 
@@ -55,7 +59,8 @@ def run(goal: str = DEMO_GOAL) -> JSONResponse:
         result = daily_refresh(goal)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(502, f"run failed: {e}") from e
-    # Do not dump entire graph in default response if huge — include summary + path
+    graph = result.get("graph") or {}
+    change_meta = (graph.get("meta") or {}).get("change_digest") or {}
     return JSONResponse(
         {
             "status": result.get("status"),
@@ -66,6 +71,7 @@ def run(goal: str = DEMO_GOAL) -> JSONResponse:
             "path": result.get("path"),
             "sources": result.get("sources"),
             "parsed": ingest_goal(goal),
+            "change_digest": change_meta,
         }
     )
 
@@ -75,6 +81,47 @@ def scheduler(body: RunBody | None = None) -> JSONResponse:
     """Cloud Scheduler daily hook."""
     goal = (body.goal if body else None) or DEMO_GOAL
     return run(goal=goal)
+
+
+@app.get("/changes")
+def changes(
+    goal_slug: str | None = Query(
+        default=None,
+        description="Graph slug; default resolves from DEMO_GOAL ingest",
+    ),
+    recompute: bool = Query(
+        default=False,
+        description="If true, re-diff prev snapshot vs current graph instead of cached digest",
+    ),
+) -> JSONResponse:
+    """Human-readable change digest: what / why / sources (+ evidence URLs)."""
+    slug = (goal_slug or "").strip() or ingest_goal(DEMO_GOAL)["goal_slug"]
+    if recompute:
+        prev = load_snapshot(slug)
+        nxt = load_graph(slug)
+        if not (nxt.get("nodes") or nxt.get("edges")):
+            raise HTTPException(404, f"no graph for slug={slug}")
+        events = diff(prev, nxt)
+        doc = digest_document(
+            events,
+            goal=str(nxt.get("goal") or slug),
+            goal_slug=slug,
+        )
+        return JSONResponse(doc)
+    cached = load_digest(slug)
+    if cached is None:
+        prev = load_snapshot(slug)
+        nxt = load_graph(slug)
+        if not (nxt.get("nodes") or nxt.get("edges")):
+            raise HTTPException(404, f"no change digest or graph for slug={slug}")
+        events = diff(prev, nxt)
+        doc = digest_document(
+            events,
+            goal=str(nxt.get("goal") or slug),
+            goal_slug=slug,
+        )
+        return JSONResponse(doc)
+    return JSONResponse(cached)
 
 
 @app.post("/rag")

@@ -7,6 +7,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from living_evidence_graph.changes import (
+    build_and_persist_digest,
+    save_snapshot,
+)
 from living_evidence_graph.config import FIRESTORE_COLLECTION, GRAPH_DIR, USE_FIRESTORE
 from living_evidence_graph.credibility import recompute_edges
 
@@ -55,9 +59,16 @@ def upsert_graph(
     edges: list[dict[str, Any]],
     goal_slug: str = "default",
     meta: dict[str, Any] | None = None,
+    emit_change_digest: bool = True,
 ) -> dict[str, Any]:
-    """Merge nodes/edges by id, recompute trust, persist."""
+    """Merge nodes/edges by id, recompute trust, persist, emit change digest."""
     existing = load_graph(goal_slug)
+    has_prior = bool(existing.get("nodes") or existing.get("edges"))
+
+    # Persist prior snapshot BEFORE overwrite so the next refresh has a real diff base.
+    if has_prior:
+        save_snapshot(existing, goal_slug=goal_slug)
+
     node_map = {n["id"]: n for n in existing.get("nodes") or [] if n.get("id")}
     for n in nodes:
         if n.get("id"):
@@ -80,6 +91,21 @@ def upsert_graph(
     }
     path = save_graph(doc, goal_slug=goal_slug)
     doc["meta"]["path"] = str(path)
+
+    if emit_change_digest:
+        prev_for_diff = existing if has_prior else None
+        digest = build_and_persist_digest(
+            prev_for_diff,
+            doc,
+            goal_slug=goal_slug,
+            also_demo=True,
+        )
+        doc["meta"]["change_digest"] = {
+            "change_count": digest.get("change_count", 0),
+            "by_what": digest.get("by_what") or {},
+            "digest_path": str(path.parent / f"{goal_slug}.changes.json"),
+        }
+
     return doc
 
 

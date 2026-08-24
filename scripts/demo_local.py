@@ -29,6 +29,11 @@ from living_evidence_graph.config import (  # noqa: E402
 )
 from living_evidence_graph.credibility import recompute_edges  # noqa: E402
 from living_evidence_graph.extract import extract_from_sources  # noqa: E402
+from living_evidence_graph.changes import (  # noqa: E402
+    build_and_persist_digest,
+    load_digest,
+    write_digest,
+)
 from living_evidence_graph.graph_store import upsert_graph  # noqa: E402
 from living_evidence_graph.schema import TRIANGLE_EDGE_TYPES  # noqa: E402
 from living_evidence_graph.tools.fetch_chembl import fetch_chembl  # noqa: E402
@@ -326,6 +331,36 @@ are corroboration layers around this spine.</p>
 <pre>{json.dumps(card.get('gemini'), indent=2)}</pre>
 </body></html>"""
     html_path.write_text(html, encoding="utf-8")
+
+    # Change digest (what / why / sources) — real prev snapshot vs upserted graph.
+    # If this run made no net changes, seed a minimal baseline for the contest artifact.
+    digest = load_digest(slug) or {}
+    if not digest.get("change_count"):
+        seed = {
+            "goal": goal,
+            "nodes": [
+                n
+                for n in doc.get("nodes") or []
+                if n.get("type") in ("Drug", "Condition")
+            ][:2],
+            "edges": [],
+            "meta": {"seed": True, "note": "minimal baseline for demo digest"},
+        }
+        digest = build_and_persist_digest(
+            seed, doc, goal_slug=slug, also_demo=True
+        )
+        digest["meta_note"] = (
+            "demo_seed_diff: prior snapshot matched current; "
+            "artifact compares minimal Drug/Condition seed vs enriched graph"
+        )
+        write_digest(digest, goal_slug=slug, also_demo=True)
+    digest_json = DEMO_DIR / "change_digest.json"
+    print(f"[demo] change_digest count={digest.get('change_count')} -> {digest_json}")
+    for e in (digest.get("changes") or [])[:3]:
+        print(
+            f"[demo]   {e.get('what')}: {e.get('why')} "
+            f"ref={e.get('edge_or_node_ref')} sources={e.get('sources')}"
+        )
 
     print(f"[demo] wrote {json_path}")
     print(f"[demo] wrote {html_path}")
