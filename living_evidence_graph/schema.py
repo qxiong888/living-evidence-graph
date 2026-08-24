@@ -44,6 +44,9 @@ SOURCE_TIERS: dict[str, float] = {
     "opentargets_kb": 0.7,  # structured drug–target–disease KB
     "chembl": 0.65,  # molecule / mechanism links
     "openfda_faers": 0.55,  # reports only — not rates
+    "private_library": 0.5,  # personal/enterprise folder docs (file-path provenance only)
+    "personal": 0.5,
+    "enterprise": 0.5,
     "preprint": 0.4,
 }
 
@@ -55,6 +58,9 @@ SOURCE_FAMILY: dict[str, str] = {
     "opentargets_kb": "opentargets",
     "chembl": "chembl",
     "openfda_faers": "openfda",
+    "private_library": "private_library",
+    "personal": "private_library",
+    "enterprise": "private_library",
     "preprint": "preprint",
 }
 

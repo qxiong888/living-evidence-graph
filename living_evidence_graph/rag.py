@@ -98,8 +98,50 @@ def _expand_query_tokens(question: str) -> set[str]:
     return expanded
 
 
-def discover_graph_path(explicit: str | Path | None = None) -> Path | None:
-    """Pick out/graph/*.json or the newest demo graph JSON under out/."""
+def _is_graph_json(path: Path) -> bool:
+    """Exclude sidecar files (prev/changes/manifest) from graph discovery."""
+    name = path.name.lower()
+    if not name.endswith(".json"):
+        return False
+    if name.endswith(".prev.json") or name.endswith(".changes.json"):
+        return False
+    if name.endswith(".manifest.json"):
+        return False
+    return True
+
+
+def resolve_graph_slug(slug: str | None) -> Path | None:
+    """Resolve library_slug / graph_slug to a graph JSON path under GRAPH_DIR."""
+    raw = (slug or "").strip()
+    if not raw:
+        return None
+    GRAPH_DIR.mkdir(parents=True, exist_ok=True)
+    candidates = [raw]
+    if not raw.startswith("private_"):
+        candidates.append(f"private_{raw}")
+    for s in candidates:
+        path = GRAPH_DIR / f"{s}.json"
+        if path.is_file():
+            return path
+    return None
+
+
+def discover_graph_path(
+    explicit: str | Path | None = None,
+    *,
+    graph_slug: str | None = None,
+) -> Path | None:
+    """Pick a graph JSON. Prefer explicit path or slug; else public Keytruda demo.
+
+    Private library graphs are never mixed into the default public demo selection
+    unless graph_slug / library_slug points at them.
+    """
+    if graph_slug:
+        by_slug = resolve_graph_slug(graph_slug)
+        if by_slug is not None:
+            return by_slug
+        # Explicit slug requested but missing → empty (caller gets abstain / empty)
+        return None
     if explicit:
         p = Path(explicit)
         return p if p.is_file() else None
@@ -107,14 +149,16 @@ def discover_graph_path(explicit: str | Path | None = None) -> Path | None:
     DEMO_DIR.mkdir(parents=True, exist_ok=True)
     candidates: list[Path] = []
     if GRAPH_DIR.is_dir():
-        candidates.extend(sorted(GRAPH_DIR.glob("*.json")))
-    # Prefer Keytruda / pembrolizumab demo slug when present
+        candidates.extend(sorted(c for c in GRAPH_DIR.glob("*.json") if _is_graph_json(c)))
+    # Prefer Keytruda / pembrolizumab public demo slug when present.
+    # Exclude private_* libraries from the default public pick.
+    public = [c for c in candidates if not c.name.startswith("private_")]
     preferred = [
         c
-        for c in candidates
+        for c in public
         if "pembrolizumab" in c.name.lower() or "keytruda" in c.name.lower()
     ]
-    pool = preferred or candidates
+    pool = preferred or public
     if not pool:
         # Fall back to any JSON under out/demo that looks like a graph
         for p in DEMO_DIR.glob("*.json"):
@@ -129,20 +173,30 @@ def discover_graph_path(explicit: str | Path | None = None) -> Path | None:
     return max(pool, key=lambda p: p.stat().st_mtime)
 
 
-def load_rag_graph(path: str | Path | None = None) -> dict[str, Any]:
+def load_rag_graph(
+    path: str | Path | None = None,
+    *,
+    graph_slug: str | None = None,
+) -> dict[str, Any]:
     """Load graph document for RAG. Empty doc if nothing on disk."""
-    resolved = discover_graph_path(path)
+    resolved = discover_graph_path(path, graph_slug=graph_slug)
     if resolved is None:
         return {
-            "goal": DEMO_GOAL,
+            "goal": DEMO_GOAL if not graph_slug else f"library:{graph_slug}",
             "nodes": [],
             "edges": [],
-            "meta": {"rag_graph_path": None, "empty": True},
+            "meta": {
+                "rag_graph_path": None,
+                "empty": True,
+                "graph_slug": graph_slug,
+            },
         }
     with resolved.open(encoding="utf-8") as f:
         doc = json.load(f)
     meta = dict(doc.get("meta") or {})
     meta["rag_graph_path"] = str(resolved)
+    if graph_slug:
+        meta["graph_slug"] = graph_slug
     doc["meta"] = meta
     return doc
 
@@ -508,9 +562,14 @@ def rag_compare(
     k: int = 8,
     path: str | Path | None = None,
     strict: bool = False,
+    graph_slug: str | None = None,
 ) -> dict[str, Any]:
-    """Side-by-side bare vs grounded (and optional strict) for /rag and demo_rag.py."""
-    doc = load_rag_graph(path)
+    """Side-by-side bare vs grounded (and optional strict) for /rag and demo_rag.py.
+
+    graph_slug / library_slug selects a private library graph; default remains the
+    public demo graph (never mixed with private folder docs).
+    """
+    doc = load_rag_graph(path, graph_slug=graph_slug)
     retrieved = retrieve_edges(question, graph=doc, k=k)
     grounded = answer_with_graph(question, k=k, graph=doc, edges=retrieved)
     bare = answer_bare(question)
@@ -518,6 +577,7 @@ def rag_compare(
         "question": question,
         "k": k,
         "graph_path": (doc.get("meta") or {}).get("rag_graph_path"),
+        "graph_slug": graph_slug or (doc.get("meta") or {}).get("library_slug"),
         "goal": doc.get("goal"),
         "retrieved_edges": retrieved,
         "context": format_context(retrieved),

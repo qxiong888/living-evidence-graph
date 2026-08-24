@@ -145,6 +145,7 @@ python scripts/demo_rag.py
 # HTTP API
 uvicorn living_evidence_graph.server:app --host 0.0.0.0 --port 8080
 # GET /health  ·  POST /run  ·  POST /scheduler  ·  POST /rag
+# POST /library/ingest  ·  GET /library/{slug}
 ```
 
 **Assumed drug strings for the demo:** brand `Keytruda`, ingredient `pembrolizumab`, condition `non-small cell lung cancer`.
@@ -156,7 +157,8 @@ uvicorn living_evidence_graph.server:app --host 0.0.0.0 --port 8080
 ```
 living_evidence_graph/
   agent.py          # ADK tools: ingest_goal, fetch_sources, extract_edges, …
-  server.py         # FastAPI (/health /run /scheduler /rag)
+  server.py         # FastAPI (/health /run /scheduler /rag /library/*)
+  private_ingest.py # personal/enterprise folder → private living graph
   rag.py            # retrieve top-k edges → bare / grounded / strict Gemini
   extract.py        # triples (Gemini JSON structure when keyed; else rules)
   credibility.py    # pure trust formula
@@ -190,6 +192,38 @@ curl -s localhost:8080/rag -H 'content-type: application/json' \
 curl -s localhost:8080/rag -H 'content-type: application/json' \
   -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?","k":8,"strict":true}'
 ```
+
+
+## Personal / Enterprise private graph
+
+Point the Taskmaster at a **local directory** of documents to build a **private** living evidence graph (separate from the public Keytruda / API demo — never mixed).
+
+Supported files (MVP): `.txt` `.md` `.html` `.csv` `.json` `.pdf` (via pypdf). Local absolute path on the machine running the service is enough for the contest demo narrative — no cloud storage required.
+
+**CLI (build or refresh):**
+```bash
+python -m living_evidence_graph.private_ingest --dir /path/to/my-papers --slug my-lib --mode personal
+# enterprise boundary flag:
+python -m living_evidence_graph.private_ingest --dir /path/to/org-vault --slug org-lib --mode enterprise
+```
+
+On each run the agent re-scans the folder, writes `out/graph/private_<slug>.json` + `.manifest.json`, snapshots the prior graph, and emits a change digest (`what` / `why` / `sources` = file paths) at `out/graph/private_<slug>.changes.json`.
+
+**HTTP (sync scan for demo; large dirs → prefer CLI):**
+```bash
+# Ingest / refresh
+curl -s localhost:8080/library/ingest -H 'content-type: application/json' \
+  -d '{"path":"/path/to/my-papers","slug":"my-lib","mode":"personal"}'
+
+# Status
+curl -s localhost:8080/library/my-lib
+
+# Strict answers only from that private graph (abstain if empty / no hits)
+curl -s localhost:8080/rag -H 'content-type: application/json' \
+  -d '{"question":"What does my library say about PDCD1?","k":8,"strict":true,"library_slug":"my-lib"}'
+```
+
+Private edges cite **file paths only** (no fake PMIDs/NCTs). Not a medical product; not medical certainty.
 
 ## Safety / legal posture
 
