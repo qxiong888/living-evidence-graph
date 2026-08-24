@@ -5,9 +5,10 @@
 
 Text-first **living evidence knowledge graph** for LLM use (multimodal later).
 
-**Two modes, one engine:**
+**Three modes, one engine:**
 - **Public graph (contest demo):** ingest public APIs into a trust-scored KG for RAG.  
-- **Enterprise private graph (product path):** deploy the same Taskmaster **inside the customer’s environment** to build a **private** KG from internal corpora (literature vaults, SOPs, trial docs) under their access controls — data stays in their boundary.
+- **Personal private graph (product path):** the same Taskmaster builds a **private** KG for an individual researcher — personal literature libraries, notes, and local corpora under their account boundary (not shared with other tenants).  
+- **Enterprise private graph (product path):** deploy inside the customer’s environment (VPC / on-prem) to build a **private** KG from org corpora (literature vaults, SOPs, trial docs) under org access controls — data stays in their boundary.
 
 **Demo vertical:** **pembrolizumab / Keytruda** · NSCLC / solid tumor — **public data only** in this repo.
 
