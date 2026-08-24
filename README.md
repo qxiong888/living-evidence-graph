@@ -5,7 +5,7 @@
 
 Text-first **living evidence knowledge graph** so LLMs give **more precise, checkable answers** (multimodal later).
 
-**Why it matters:** LLMs **often invent** trial/paper IDs or over-claim from memory. This Taskmaster agent keeps a living, trust-scored evidence graph and **grounds** answers on retrieved edges — so results are auditable, not free-form guesses. Still not clinical advice; FAERS = reports not rates; no causation claims.
+**Why it matters:** LLMs **often invent** trial/paper IDs or over-claim from memory. This **unattended Taskmaster agent** keeps a living, trust-scored evidence graph and **grounds** answers on retrieved edges — so results are auditable, not free-form guesses. After you set a goal, it runs by itself (daily fetch → graph refresh → change digest → grounded/strict RAG) without babysitting. Still not clinical advice; FAERS = reports not rates; no causation claims.
 
 **Three modes, one engine:**
 - **Public graph (contest demo):** ingest public APIs into a trust-scored KG for RAG.  
@@ -29,12 +29,12 @@ Text-first **living evidence knowledge graph** so LLMs give **more precise, chec
 **Input → result** (not “build a graph and stop”):
 
 1. **You enter a goal** — drug + indication / research question (demo default: Keytruda / pembrolizumab + NSCLC).
-2. **Taskmaster builds & daily-refreshes the living graph** — public APIs (or personal/enterprise corpora in private modes), credibility scores, change digests.
+2. **Unattended Taskmaster builds & daily-refreshes the living graph** — Cloud Scheduler → `POST /scheduler` (job `leg-daily-keytruda`); fetches public APIs (or personal/enterprise corpora in private modes), scores credibility, emits change digests — **no human click every day**.
 3. **You ask / automate against the graph and get better LLM results:**
    - **Grounded answers** (`POST /rag`) — Gemini may only use top-k high-trust edges (demo: bare vs grounded).
    - **Strict / library-only mode** (`POST /rag` with `"strict": true`) — answers **only** from the living graph’s configured sources (public demo: the 7 APIs) **or** a personal/enterprise private library graph. If nothing relevant is retrieved → reply clearly that **no related information was found** and **do not invent** any other answer (no bare-model freestyle). Not a claim of medical certainty — only from the evidence graph / library; abstain if missing.
    - **Auditable citations** — NCT / PMID / label / KB links on every used edge; FAERS = **reports**, not rates; **not** causation or clinical advice.
-   - **Freshness** — daily refresh + change digest (**what** / **why** / **sources**) so answers track new public evidence.
+   - **Freshness / autonomy** — daily unattended refresh + change digest (**what** / **why** / **sources**) so answers track new public evidence without babysitting.
 
 Same loop in all three modes (Public / Personal private / Enterprise private); only the data boundary changes.
 
