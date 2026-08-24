@@ -189,3 +189,56 @@ def test_answer_strict_nonempty_sets_mode_strict(monkeypatch):
         "ONLY from the provided" in seen["system"]
     )
     assert "outside" in seen["system"].lower() or "pretrained" in seen["system"].lower()
+
+def test_system_strict_answers_supported_clauses():
+    """Mixed questions: answer graph-backed clauses; abstain only on missing slice."""
+    from living_evidence_graph.rag import SYSTEM_STRICT
+
+    assert STRICT_ABSTAIN_MESSAGE in SYSTEM_STRICT
+    low = SYSTEM_STRICT.lower()
+    assert "every clause" in low or "supported" in low
+    assert "global abstain" in low
+    assert "insufficient to answer" not in low
+
+
+def test_answer_strict_nonempty_user_prompt_is_partial(monkeypatch):
+    """When edges exist, user prompt must not push a full-question abstain."""
+    seen = {}
+
+    def _fake(*, system: str, user: str):
+        seen["system"] = system
+        seen["user"] = user
+        return {
+            "status": "ok",
+            "model": "fake-model",
+            "text": "Cited edges for supported clauses; KEYNOTE-888 unsupported.",
+            "used": True,
+        }
+
+    monkeypatch.setattr("living_evidence_graph.rag._call_gemini", _fake)
+    g = _mini_graph()
+    out = answer_strict(
+        "What NSCLC indication does the graph list? What is the OS HR for KEYNOTE-888?",
+        graph=g,
+        k=3,
+    )
+    assert out["abstained"] is False
+    assert len(out["retrieved_edges"]) > 0
+    user = seen["user"].lower()
+    assert "that clause only" in user or "unsupported" in user
+    assert "do not use the global abstain" in user
+
+
+def test_demo_question_is_reed_mixed():
+    """Live compare uses Reed mixed question (graph clauses + KEYNOTE-888 trap)."""
+    from pathlib import Path
+
+    src = (Path(__file__).resolve().parents[1] / "scripts" / "demo_rag.py").read_text()
+    assert "What NSCLC indication and PDCD1 target" in src
+    assert "DailyMed" in src
+    assert "pneumonitis" in src and "hepatitis" in src
+    assert "KEYNOTE-799" in src
+    assert "NCT03631784" in src
+    assert "KEYNOTE-888" in src
+    assert "hazard ratio" in src.lower()
+    assert "Do not invent IDs or claim causation" not in src.split("DEMO_QUESTION")[1][:800]

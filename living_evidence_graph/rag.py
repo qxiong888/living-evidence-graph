@@ -47,7 +47,12 @@ SYSTEM_STRICT = (
     "Do NOT invent NCT IDs, PMIDs, setids, ChEMBL/Ensembl IDs, or FDA counts. "
     "Do NOT claim causation, incidence rates, or medical certainty. "
     "openFDA FAERS figures are voluntary reports only. "
-    "If the provided edges are empty or insufficient to answer, reply with exactly: "
+    "If retrieved edges were provided, answer every clause those edges support "
+    "and cite the supporting edge ids. "
+    "For any clause with no supporting edge, say that no related information "
+    "was found / that clause is unsupported — do not invent it. "
+    "Do NOT reply with the single-line global abstain if any edges were provided. "
+    "Only if the provided edges are empty, reply with exactly: "
     "No related information was found in the evidence graph for this question. "
     "Never invent an answer. This is not medical advice and not an endorsement by FDA/NLM/NIH."
 )
@@ -427,7 +432,10 @@ def format_context(edges: list[dict[str, Any]]) -> str:
 
 
 def _call_gemini(*, system: str, user: str) -> dict[str, Any]:
-    """Call Gemini 3.5 Flash via Gemini API. Never print the API key."""
+    """Call Gemini via Gemini API. Prefer GEMINI_MODEL; on 429 try gemini-3.6-flash.
+
+    Never print the API key.
+    """
     if not has_gemini_key():
         return {
             "status": "gemini_skipped",
@@ -439,30 +447,14 @@ def _call_gemini(*, system: str, user: str) -> dict[str, Any]:
             "used": False,
         }
     key = gemini_api_key()
+    models = [GEMINI_MODEL]
+    if GEMINI_MODEL != "gemini-3.6-flash":
+        models.append("gemini-3.6-flash")
+    last_err: Exception | None = None
+    last_model = models[0]
     try:
         from google import genai
         from google.genai import types
-
-        client = genai.Client(api_key=key)
-        try:
-            resp = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=user,
-                config=types.GenerateContentConfig(system_instruction=system),
-            )
-        except (TypeError, AttributeError):
-            # Older google-genai may not support system_instruction the same way
-            resp = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=f"SYSTEM:\n{system}\n\nUSER:\n{user}",
-            )
-        text = (getattr(resp, "text", None) or str(resp)).strip()
-        return {
-            "status": "ok",
-            "model": GEMINI_MODEL,
-            "text": text[:8000],
-            "used": True,
-        }
     except Exception as e:  # noqa: BLE001
         return {
             "status": "gemini_error",
@@ -471,6 +463,43 @@ def _call_gemini(*, system: str, user: str) -> dict[str, Any]:
             "used": False,
             "error": str(e),
         }
+
+    client = genai.Client(api_key=key)
+    for model in models:
+        last_model = model
+        try:
+            try:
+                resp = client.models.generate_content(
+                    model=model,
+                    contents=user,
+                    config=types.GenerateContentConfig(system_instruction=system),
+                )
+            except (TypeError, AttributeError):
+                # Older google-genai may not support system_instruction the same way
+                resp = client.models.generate_content(
+                    model=model,
+                    contents=f"SYSTEM:\n{system}\n\nUSER:\n{user}",
+                )
+            text = (getattr(resp, "text", None) or str(resp)).strip()
+            return {
+                "status": "ok",
+                "model": model,
+                "text": text[:8000],
+                "used": True,
+            }
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            err = str(e)
+            if "429" not in err and "RESOURCE_EXHAUSTED" not in err:
+                break
+    e = last_err
+    return {
+        "status": "gemini_error",
+        "model": last_model,
+        "text": f"[gemini_error] {type(e).__name__}: {e}" if e else "[gemini_error]",
+        "used": False,
+        "error": str(e) if e else "",
+    }
 
 
 def answer_bare(question: str) -> dict[str, Any]:
@@ -520,7 +549,9 @@ def answer_strict(
     """Library-only answer: only from retrieved edges; abstain if none retrieved.
 
     If retrieval returns no edges, do not call Gemini — return a fixed abstain
-    message (no bare-model freestyle). Otherwise call Gemini with SYSTEM_STRICT.
+    message (no bare-model freestyle). If edges exist, call Gemini with
+    SYSTEM_STRICT so supported clauses are answered and only unsupported
+    clauses are left empty — never a global abstain on a mixed question.
     """
     doc = graph if graph is not None else load_rag_graph(path)
     retrieved = edges if edges is not None else retrieve_edges(question, graph=doc, k=k)
@@ -543,8 +574,11 @@ def answer_strict(
         f"{context}\n\n"
         f"Question: {question}\n\n"
         "Answer ONLY from the graph / library context above. "
-        "If evidence is missing or insufficient, say that no related information "
-        "was found in the evidence graph. Never invent IDs or use outside knowledge."
+        "Answer each clause the retrieved edges support and cite those edges. "
+        "If a clause has no supporting edge, say no related information was found "
+        "for that clause only (unsupported). "
+        "Do not use the global abstain sentence when any edges were retrieved. "
+        "Never invent IDs or use outside knowledge."
     )
     result = _call_gemini(system=SYSTEM_STRICT, user=user)
     result["mode"] = "strict"
