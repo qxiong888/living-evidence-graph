@@ -19,6 +19,20 @@ Text-first **living evidence knowledge graph** for LLM use (multimodal later).
 
 ---
 
+
+## How you use it (closed loop)
+
+**Input → result**, not “build a graph and stop.”
+
+1. **You enter a goal** — drug + indication / research question (demo default: Keytruda / pembrolizumab + NSCLC).
+2. **Taskmaster builds & refreshes the living graph** — public APIs (or your personal/enterprise corpora in private modes), trust scores, daily Scheduler updates, change digests.
+3. **You get usable outputs:**
+   - **Grounded answers** via RAG (`POST /rag`) — Gemini answers only from retrieved high-trust edges (bare vs grounded comparison in the demo).
+   - **Evidence you can audit** — NCT / PMID / label / KB links on edges; FAERS stays **reports**, not rates; **not** causation or clinical advice.
+   - **What changed** — after each refresh, a change digest: **what** / **why** / **sources** (`GET /changes`).
+
+Same loop in all three modes (Public / Personal private / Enterprise private); only the data boundary changes.
+
 ## Core motif (LLM retrieval spine)
 
 ```
