@@ -77,6 +77,3 @@ flowchart LR
 3. Show bare Gemini vs grounded Gemini citing only retrieved edges.  
 4. Refuse causation / rates; label FAERS as reports; attribution / no endorsement.
 
-## Future track
-
-Same architecture supports an **NCI ODS Impact Prize Track 1 Ideas** narrative (deadline 2026-10-05 ET) after the Taskmaster submission.

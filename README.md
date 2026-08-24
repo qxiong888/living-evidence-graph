@@ -17,8 +17,6 @@ Text-first **living evidence knowledge graph** for LLM use (multimodal later).
 > **Not endorsed** by FDA, NLM, NIH, NCBI, Open Targets, or ChEMBL.  
 > **LLM path:** retrieval-only over the graph — do not dump PubMed abstracts / non-OA Europe PMC full text into training corpora.
 
-**Future track (note only):** same product narrative → **NCI ODS Impact Prize Track 1 Ideas** (cancer research output sharing/reuse), deadline **2026-10-05 ET**. Full NCI packet is out of scope for this repo pass.
-
 ---
 
 ## Core motif (LLM retrieval spine)
