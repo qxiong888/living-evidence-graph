@@ -1,0 +1,25 @@
+# Reference only — DO NOT deploy from this scaffold pass.
+# Cloud Run: us-central1, min instances 0, request-based billing (cpu-throttling).
+# Contest default: Gemini 3.5 Flash via Gemini API (AI Studio key), NOT Vertex.
+
+service: living-evidence-graph
+region: us-central1
+minScale: 0
+maxScale: 2
+memory: 512Mi
+containerPort: 8080
+env:
+  - name: GOOGLE_GENAI_USE_VERTEXAI
+    value: "false"
+  - name: GEMINI_MODEL
+    value: gemini-3.5-flash
+  - name: GOOGLE_CLOUD_REGION
+    value: us-central1
+  - name: LEG_USE_FIRESTORE
+    value: "true"
+  - name: FIRESTORE_COLLECTION
+    value: evidence_graph
+  - name: LEG_OUT_DIR
+    value: /tmp/leg-out
+# Set GEMINI_API_KEY / GOOGLE_API_KEY via Secret Manager or --set-env-vars at deploy time.
+# Never commit real keys.

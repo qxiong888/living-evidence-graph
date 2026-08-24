@@ -1,0 +1,11 @@
+# Daily refresh for Keytruda / NSCLC public evidence graph.
+# Apply only after Cloud Run exists. Replace SERVICE_URL.
+
+jobs:
+  - name: leg-daily-keytruda
+    schedule: "0 9 * * *"
+    timeZone: America/Los_Angeles
+    httpTarget:
+      uri: "${SERVICE_URL}/scheduler"
+      httpMethod: POST
+      body: '{"goal":"pembrolizumab / Keytruda NSCLC solid tumor evidence graph"}'

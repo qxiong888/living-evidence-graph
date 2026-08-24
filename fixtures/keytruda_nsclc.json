@@ -1,0 +1,69 @@
+{
+  "_fixture": true,
+  "_note": "TINY labeled fixtures for offline fallback only. Not live API data. Do not treat NCT/PMID as verified unless a live call returned them.",
+  "clinicaltrials": {
+    "ok": true,
+    "source": "clinicaltrials.gov",
+    "query": "FIXTURE pembrolizumab NSCLC",
+    "fixture": true,
+    "total_count": 2,
+    "studies": [
+      {
+        "nct_id": "NCT01295827",
+        "title": "FIXTURE PLACEHOLDER — Study of Pembrolizumab (MK-3475) in Participants With Advanced Solid Tumors (KEYNOTE-001)",
+        "overall_status": "COMPLETED",
+        "conditions": ["Solid Tumors", "Non-Small-Cell Lung Carcinoma"],
+        "phases": ["PHASE1"],
+        "url": "https://clinicaltrials.gov/study/NCT01295827"
+      },
+      {
+        "nct_id": "NCT02142738",
+        "title": "FIXTURE PLACEHOLDER — Study of Pembrolizumab (MK-3475) vs Platinum-Based Chemotherapy for PD-L1+ NSCLC (KEYNOTE-024)",
+        "overall_status": "COMPLETED",
+        "conditions": ["Non-Small-Cell Lung Carcinoma"],
+        "phases": ["PHASE3"],
+        "url": "https://clinicaltrials.gov/study/NCT02142738"
+      }
+    ]
+  },
+  "pubmed": {
+    "ok": true,
+    "source": "pubmed",
+    "query": "FIXTURE pembrolizumab NSCLC",
+    "fixture": true,
+    "count": 2,
+    "publications": [
+      {
+        "pmid": "27216199",
+        "title": "FIXTURE PLACEHOLDER — Pembrolizumab versus Chemotherapy for PD-L1-Positive Non-Small-Cell Lung Cancer",
+        "pubdate": "2016",
+        "source": "N Engl J Med",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/27216199/"
+      },
+      {
+        "pmid": "26712084",
+        "title": "FIXTURE PLACEHOLDER — Pembrolizumab for the treatment of non-small-cell lung cancer",
+        "pubdate": "2015",
+        "source": "N Engl J Med",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/26712084/"
+      }
+    ]
+  },
+  "openfda": {
+    "ok": true,
+    "source": "openfda_faers",
+    "drug": "Keytruda",
+    "fixture": true,
+    "label": "FIXTURE — openFDA FAERS voluntary reports — not rates, not causation, not a safety signal. Sample reaction terms only.",
+    "total_reports": null,
+    "last_updated": null,
+    "reactions": [
+      {"term": "Fatigue", "count_in_sample": 3},
+      {"term": "Diarrhoea", "count_in_sample": 2},
+      {"term": "Nausea", "count_in_sample": 2}
+    ],
+    "sample_safetyreports": [],
+    "empty": false,
+    "request_url": "https://api.fda.gov/drug/event.json?search=FIXTURE"
+  }
+}
