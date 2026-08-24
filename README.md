@@ -3,8 +3,13 @@
 **All Things Agentic (The Taskmaster)** submission scaffold  
 **Deadline:** 2026-08-31 17:00 PT  
 
-Text-first **living evidence graph** for LLM use (multimodal later).  
-**Demo vertical:** **pembrolizumab / Keytruda** · NSCLC / solid tumor — **public data only**.
+Text-first **living evidence knowledge graph** for LLM use (multimodal later).
+
+**Two modes, one engine:**
+- **Public graph (contest demo):** ingest public APIs into a trust-scored KG for RAG.  
+- **Enterprise private graph (product path):** deploy the same Taskmaster **inside the customer’s environment** to build a **private** KG from internal corpora (literature vaults, SOPs, trial docs) under their access controls — data stays in their boundary.
+
+**Demo vertical:** **pembrolizumab / Keytruda** · NSCLC / solid tumor — **public data only** in this repo.
 
 > openFDA FAERS values are **voluntary reports**, not incidence rates, and **not causation**.  
 > This project never invents NCT IDs, PMIDs, setids, ChEMBL/Ensembl IDs, or FDA counts.  
@@ -41,7 +46,7 @@ See [docs/CREDIBILITY.md](docs/CREDIBILITY.md), [LICENSES.md](LICENSES.md).
 | **Firestore** (optional adapter; local JSON default) | `graph_store.py` |
 | Public sources (7 families, APIs not scraping) | `tools/fetch_*.py` |
 
-This pass **does not** `git push`, create a GitHub repo, or deploy to GCP.
+Public repo: https://github.com/qxiong888/living-evidence-graph
 
 ---
 
