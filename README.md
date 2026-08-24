@@ -72,7 +72,7 @@ flowchart TB
   Run --> ADK
 ```
 
-See [docs/architecture.md](docs/architecture.md), [docs/PLAN.md](docs/PLAN.md), [docs/DEVPOST.md](docs/DEVPOST.md).
+See [docs/architecture.md](docs/architecture.md), [docs/CREDIBILITY.md](docs/CREDIBILITY.md).
 
 ---
 

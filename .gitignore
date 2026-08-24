@@ -12,3 +12,8 @@ dist/
 build/
 .DS_Store
 .adk/
+
+# Internal / contest-prep only (not for public GitHub)
+docs/PLAN.md
+docs/DEMO_SCRIPT.md
+docs/DEVPOST.md
