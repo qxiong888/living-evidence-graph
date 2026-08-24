@@ -34,9 +34,16 @@ class RunBody(BaseModel):
 class RagBody(BaseModel):
     question: str = Field(
         ...,
-        description="User question answered bare vs grounded on retrieved graph edges",
+        description="User question answered bare vs grounded (and optional strict) on retrieved graph edges",
     )
     k: int = Field(default=8, ge=1, le=25, description="Top-k edges to retrieve")
+    strict: bool = Field(
+        default=False,
+        description=(
+            "If true, also return library-only strict answer "
+            "(abstain when no edges retrieved; no bare-model freestyle)"
+        ),
+    )
 
 
 @app.get("/health")
@@ -126,23 +133,25 @@ def changes(
 
 @app.post("/rag")
 def rag(body: RagBody) -> JSONResponse:
-    """Retrieve high-trust graph edges and compare bare vs grounded Gemini answers."""
+    """Retrieve high-trust graph edges; bare vs grounded (+ optional strict) Gemini."""
     q = (body.question or "").strip()
     if not q:
         raise HTTPException(400, "question is required")
     try:
-        result = rag_compare(q, k=body.k)
+        result = rag_compare(q, k=body.k, strict=bool(body.strict))
     except Exception as e:  # noqa: BLE001
         raise HTTPException(502, f"rag failed: {e}") from e
-    return JSONResponse(
-        {
-            "question": result["question"],
-            "retrieved_edges": result["retrieved_edges"],
-            "bare": result["bare"],
-            "grounded": result["grounded"],
-            "disclaimer": result.get("disclaimer") or DISCLAIMER,
-            "k": result.get("k"),
-            "graph_path": result.get("graph_path"),
-            "gemini_used": result.get("gemini_used"),
-        }
-    )
+    payload = {
+        "question": result["question"],
+        "retrieved_edges": result["retrieved_edges"],
+        "bare": result["bare"],
+        "grounded": result["grounded"],
+        "disclaimer": result.get("disclaimer") or DISCLAIMER,
+        "k": result.get("k"),
+        "graph_path": result.get("graph_path"),
+        "gemini_used": result.get("gemini_used"),
+        "strict_requested": bool(body.strict),
+    }
+    if body.strict:
+        payload["strict"] = result.get("strict")
+    return JSONResponse(payload)

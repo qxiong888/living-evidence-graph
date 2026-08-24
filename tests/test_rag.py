@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from living_evidence_graph.rag import (
     DISCLAIMER,
+    STRICT_ABSTAIN_MESSAGE,
+    answer_strict,
     format_context,
     retrieve_edges,
     score_edge_for_question,
@@ -135,3 +137,55 @@ def test_disclaimer_elena_posture():
     assert "not a medical product" in DISCLAIMER.lower()
     assert "not causation" in DISCLAIMER.lower() or "not rates" in DISCLAIMER.lower()
     assert "retrieval-only" in DISCLAIMER.lower()
+
+
+def test_answer_strict_empty_retrieval_abstains_without_gemini(monkeypatch):
+    """Empty graph → fixed abstain message; Gemini must not be called."""
+    calls = {"n": 0}
+
+    def _boom(*, system: str, user: str):
+        calls["n"] += 1
+        raise AssertionError("Gemini must not be called when retrieval is empty")
+
+    monkeypatch.setattr("living_evidence_graph.rag._call_gemini", _boom)
+    empty = {"goal": "empty", "nodes": [], "edges": [], "meta": {}}
+    out = answer_strict("What about zebra oncology trials?", graph=empty, k=5)
+    assert calls["n"] == 0
+    assert out["mode"] == "strict"
+    assert out["abstained"] is True
+    assert out["used"] is False
+    assert out["status"] == "abstained"
+    assert out["text"] == STRICT_ABSTAIN_MESSAGE
+    assert out["retrieved_edges"] == []
+    assert "no related information" in out["text"].lower()
+
+
+def test_answer_strict_nonempty_sets_mode_strict(monkeypatch):
+    """Non-empty retrieval → Gemini called with SYSTEM_STRICT; mode=strict."""
+    seen = {}
+
+    def _fake(*, system: str, user: str):
+        seen["system"] = system
+        seen["user"] = user
+        return {
+            "status": "ok",
+            "model": "fake-model",
+            "text": "Cited edge:edge:indicated:pembrolizumab:nsclc only.",
+            "used": True,
+        }
+
+    monkeypatch.setattr("living_evidence_graph.rag._call_gemini", _fake)
+    g = _mini_graph()
+    out = answer_strict(
+        "What indication edges link pembrolizumab to NSCLC?",
+        graph=g,
+        k=3,
+    )
+    assert out["mode"] == "strict"
+    assert out["abstained"] is False
+    assert out["used"] is True
+    assert len(out["retrieved_edges"]) > 0
+    assert "ONLY from the provided living-evidence-graph" in seen["system"] or (
+        "ONLY from the provided" in seen["system"]
+    )
+    assert "outside" in seen["system"].lower() or "pretrained" in seen["system"].lower()

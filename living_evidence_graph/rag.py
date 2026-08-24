@@ -39,6 +39,23 @@ SYSTEM_GROUNDED = (
     "This is not medical advice and not an endorsement by FDA/NLM/NIH."
 )
 
+# Library-only / strict: stronger than grounded — no outside knowledge, abstain if missing.
+SYSTEM_STRICT = (
+    "You answer ONLY from the provided living-evidence-graph / library edges. "
+    "Use nothing from your pretrained knowledge or the open web. "
+    "Cite edges by their edge id or type + endpoints. "
+    "Do NOT invent NCT IDs, PMIDs, setids, ChEMBL/Ensembl IDs, or FDA counts. "
+    "Do NOT claim causation, incidence rates, or medical certainty. "
+    "openFDA FAERS figures are voluntary reports only. "
+    "If the provided edges are empty or insufficient to answer, reply with exactly: "
+    "No related information was found in the evidence graph for this question. "
+    "Never invent an answer. This is not medical advice and not an endorsement by FDA/NLM/NIH."
+)
+
+STRICT_ABSTAIN_MESSAGE = (
+    "No related information was found in the evidence graph for this question."
+)
+
 SYSTEM_BARE = (
     "You are a careful oncology research assistant for a contest demo. "
     "Do NOT invent specific NCT IDs, PMIDs, setids, ChEMBL IDs, or FDA counts. "
@@ -438,18 +455,66 @@ def answer_with_graph(
     return result
 
 
+def answer_strict(
+    question: str,
+    *,
+    k: int = 8,
+    graph: dict[str, Any] | None = None,
+    path: str | Path | None = None,
+    edges: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Library-only answer: only from retrieved edges; abstain if none retrieved.
+
+    If retrieval returns no edges, do not call Gemini — return a fixed abstain
+    message (no bare-model freestyle). Otherwise call Gemini with SYSTEM_STRICT.
+    """
+    doc = graph if graph is not None else load_rag_graph(path)
+    retrieved = edges if edges is not None else retrieve_edges(question, graph=doc, k=k)
+    graph_path = (doc.get("meta") or {}).get("rag_graph_path")
+    if len(retrieved) == 0:
+        return {
+            "status": "abstained",
+            "model": GEMINI_MODEL,
+            "text": STRICT_ABSTAIN_MESSAGE,
+            "used": False,
+            "abstained": True,
+            "mode": "strict",
+            "question": question,
+            "context": format_context([]),
+            "retrieved_edges": [],
+            "graph_path": graph_path,
+        }
+    context = format_context(retrieved)
+    user = (
+        f"{context}\n\n"
+        f"Question: {question}\n\n"
+        "Answer ONLY from the graph / library context above. "
+        "If evidence is missing or insufficient, say that no related information "
+        "was found in the evidence graph. Never invent IDs or use outside knowledge."
+    )
+    result = _call_gemini(system=SYSTEM_STRICT, user=user)
+    result["mode"] = "strict"
+    result["question"] = question
+    result["context"] = context
+    result["retrieved_edges"] = retrieved
+    result["graph_path"] = graph_path
+    result["abstained"] = False
+    return result
+
+
 def rag_compare(
     question: str,
     *,
     k: int = 8,
     path: str | Path | None = None,
+    strict: bool = False,
 ) -> dict[str, Any]:
-    """Side-by-side bare vs grounded payload for /rag and demo_rag.py."""
+    """Side-by-side bare vs grounded (and optional strict) for /rag and demo_rag.py."""
     doc = load_rag_graph(path)
     retrieved = retrieve_edges(question, graph=doc, k=k)
     grounded = answer_with_graph(question, k=k, graph=doc, edges=retrieved)
     bare = answer_bare(question)
-    return {
+    out: dict[str, Any] = {
         "question": question,
         "k": k,
         "graph_path": (doc.get("meta") or {}).get("rag_graph_path"),
@@ -460,4 +525,12 @@ def rag_compare(
         "grounded": grounded,
         "disclaimer": DISCLAIMER,
         "gemini_used": bool(bare.get("used") or grounded.get("used")),
+        "strict_requested": bool(strict),
     }
+    if strict:
+        strict_ans = answer_strict(question, k=k, graph=doc, edges=retrieved)
+        out["strict"] = strict_ans
+        out["gemini_used"] = bool(
+            out["gemini_used"] or strict_ans.get("used")
+        )
+    return out

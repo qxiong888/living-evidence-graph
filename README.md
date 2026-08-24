@@ -32,6 +32,7 @@ Text-first **living evidence knowledge graph** so LLMs give **more precise, chec
 2. **Taskmaster builds & daily-refreshes the living graph** — public APIs (or personal/enterprise corpora in private modes), credibility scores, change digests.
 3. **You ask / automate against the graph and get better LLM results:**
    - **Grounded answers** (`POST /rag`) — Gemini may only use top-k high-trust edges (demo: bare vs grounded).
+   - **Strict / library-only mode** (`POST /rag` with `"strict": true`) — answers **only** from the living graph’s configured sources (public demo: the 7 APIs) **or** a personal/enterprise private library graph. If nothing relevant is retrieved → reply clearly that **no related information was found** and **do not invent** any other answer (no bare-model freestyle). Not a claim of medical certainty — only from the evidence graph / library; abstain if missing.
    - **Auditable citations** — NCT / PMID / label / KB links on every used edge; FAERS = **reports**, not rates; **not** causation or clinical advice.
    - **Freshness** — daily refresh + change digest (**what** / **why** / **sources**) so answers track new public evidence.
 
@@ -156,7 +157,7 @@ uvicorn living_evidence_graph.server:app --host 0.0.0.0 --port 8080
 living_evidence_graph/
   agent.py          # ADK tools: ingest_goal, fetch_sources, extract_edges, …
   server.py         # FastAPI (/health /run /scheduler /rag)
-  rag.py            # retrieve top-k edges → bare vs grounded Gemini
+  rag.py            # retrieve top-k edges → bare / grounded / strict Gemini
   extract.py        # triples (Gemini JSON structure when keyed; else rules)
   credibility.py    # pure trust formula
   graph_store.py    # local JSON + Firestore stub
@@ -178,11 +179,16 @@ living_evidence_graph/
 1. Ask a Keytruda / NSCLC question (`POST /rag` or `scripts/demo_rag.py`).
 2. Retriever ranks edges by **trust_score** + keyword/entity overlap (boosts triangle spine + `evidence_urls`).
 3. Show **bare Gemini** vs **grounded Gemini** (system instruction: cite only provided edges; refuse causation/rates; say when graph lacks evidence).
-4. Point at `out/demo/rag_compare.html` — retrieval-only, no fine-tuning, no abstract dumps into training.
+4. Optional **strict / library-only**: `"strict": true` returns a third answer that uses **only** retrieved edges (or abstains with a fixed message if retrieval is empty — Gemini is not called).
+5. Point at `out/demo/rag_compare.html` — retrieval-only, no fine-tuning, no abstract dumps into training.
 
 ```bash
 curl -s localhost:8080/rag -H 'content-type: application/json' \
   -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?","k":8}'
+
+# Strict / library-only (bare + grounded + strict for contrast)
+curl -s localhost:8080/rag -H 'content-type: application/json' \
+  -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?","k":8,"strict":true}'
 ```
 
 ## Safety / legal posture
