@@ -141,7 +141,7 @@ living_evidence_graph/
   agent.py          # ADK tools: ingest_goal, fetch_sources, extract_edges, …
   server.py         # FastAPI (/health /run /scheduler /rag)
   rag.py            # retrieve top-k edges → bare vs grounded Gemini
-  extract.py        # triples (+ optional Gemini summary)
+  extract.py        # triples (Gemini JSON structure when keyed; else rules)
   credibility.py    # pure trust formula
   graph_store.py    # local JSON + Firestore stub
   tools/
