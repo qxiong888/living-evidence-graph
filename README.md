@@ -5,6 +5,8 @@
 
 Text-first **living evidence knowledge graph** so LLMs give **more precise, checkable answers** (multimodal later).
 
+**Why it matters:** LLMs **often invent** trial/paper IDs or over-claim from memory. This Taskmaster agent keeps a living, trust-scored evidence graph and **grounds** answers on retrieved edges — so results are auditable, not free-form guesses. Still not clinical advice; FAERS = reports not rates; no causation claims.
+
 **Three modes, one engine:**
 - **Public graph (contest demo):** ingest public APIs into a trust-scored KG for RAG.  
 - **Personal private graph (product path):** the same Taskmaster builds a **private** KG for an individual researcher — personal literature libraries, notes, and local corpora under their account boundary (not shared with other tenants).  
