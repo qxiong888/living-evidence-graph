@@ -3,7 +3,7 @@
 **All Things Agentic (The Taskmaster)** submission scaffold  
 **Deadline:** 2026-08-31 17:00 PT  
 
-Text-first **living evidence knowledge graph** for LLM use (multimodal later).
+Text-first **living evidence knowledge graph** so LLMs give **more precise, checkable answers** (multimodal later).
 
 **Three modes, one engine:**
 - **Public graph (contest demo):** ingest public APIs into a trust-scored KG for RAG.  
@@ -22,14 +22,16 @@ Text-first **living evidence knowledge graph** for LLM use (multimodal later).
 
 ## How you use it (closed loop)
 
-**Input → result**, not “build a graph and stop.”
+**Value:** the living graph exists so **your LLM answers are more precise and checkable** — grounded in retrieved, trust-scored evidence instead of free-form recall that can invent IDs or over-claim.
+
+**Input → result** (not “build a graph and stop”):
 
 1. **You enter a goal** — drug + indication / research question (demo default: Keytruda / pembrolizumab + NSCLC).
-2. **Taskmaster builds & refreshes the living graph** — public APIs (or your personal/enterprise corpora in private modes), trust scores, daily Scheduler updates, change digests.
-3. **You get usable outputs:**
-   - **Grounded answers** via RAG (`POST /rag`) — Gemini answers only from retrieved high-trust edges (bare vs grounded comparison in the demo).
-   - **Evidence you can audit** — NCT / PMID / label / KB links on edges; FAERS stays **reports**, not rates; **not** causation or clinical advice.
-   - **What changed** — after each refresh, a change digest: **what** / **why** / **sources** (`GET /changes`).
+2. **Taskmaster builds & daily-refreshes the living graph** — public APIs (or personal/enterprise corpora in private modes), credibility scores, change digests.
+3. **You ask / automate against the graph and get better LLM results:**
+   - **Grounded answers** (`POST /rag`) — Gemini may only use top-k high-trust edges (demo: bare vs grounded).
+   - **Auditable citations** — NCT / PMID / label / KB links on every used edge; FAERS = **reports**, not rates; **not** causation or clinical advice.
+   - **Freshness** — daily refresh + change digest (**what** / **why** / **sources**) so answers track new public evidence.
 
 Same loop in all three modes (Public / Personal private / Enterprise private); only the data boundary changes.
 
