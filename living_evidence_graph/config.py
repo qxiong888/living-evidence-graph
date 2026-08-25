@@ -17,6 +17,9 @@ OUT_DIR = Path(os.getenv("LEG_OUT_DIR", str(PROJECT_ROOT / "out")))
 GRAPH_DIR = OUT_DIR / "graph"
 DEMO_DIR = OUT_DIR / "demo"
 FIXTURES_DIR = PROJECT_ROOT / "fixtures"
+DEMO_GRAPH_FIXTURES_DIR = FIXTURES_DIR / "demo_graph"
+# Baked public Keytruda/NSCLC demo slug — filename must match discover_graph_path.
+DEMO_GRAPH_SLUG = "pembrolizumab_non_small_cell_lung_cancer"
 
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash")
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT", "")

@@ -240,8 +240,11 @@ Public service (min-instances 0, `us-central1`):
 `https://living-evidence-graph-892760629727.us-central1.run.app`
 
 ```bash
-# Health
+# Health (includes seeded demo node_count / edge_count)
 curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/health
+
+# Demo graph (baked 14 nodes / 10 edges on cold start)
+curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/graph
 
 # Bare vs grounded (Keytruda / NSCLC demo graph already on the service)
 curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/rag \

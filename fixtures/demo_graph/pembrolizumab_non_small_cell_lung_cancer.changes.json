@@ -1,0 +1,338 @@
+{
+  "title": "Living Evidence Graph — change digest",
+  "goal": "pembrolizumab / Keytruda NSCLC solid tumor evidence graph",
+  "goal_slug": "pembrolizumab_non_small_cell_lung_cancer",
+  "generated_at": "2026-08-24T17:36:17.675045+00:00",
+  "disclaimer": "Public data only. No PHI. No causation claims. openFDA FAERS = voluntary reports, not rates. Provenance IDs/URLs are copied from graph payloads only — never invented.",
+  "prev_snapshot": null,
+  "next_graph": "/workspace/living-evidence-graph/out/graph/pembrolizumab_non_small_cell_lung_cancer.json",
+  "change_count": 24,
+  "by_what": {
+    "added": 24
+  },
+  "changes": [
+    {
+      "id": "chg:added:893fc1240dd3",
+      "kind": "node",
+      "what": "added",
+      "why": "new AdverseEventConcept added",
+      "edge_or_node_ref": "AE:Dyspnoea",
+      "sources": [],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:e290d12335e1",
+      "kind": "node",
+      "what": "added",
+      "why": "new AdverseEventConcept added",
+      "edge_or_node_ref": "AE:hepatitis",
+      "sources": [],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:2cc1a032923d",
+      "kind": "node",
+      "what": "added",
+      "why": "new AdverseEventConcept added",
+      "edge_or_node_ref": "AE:pneumonitis",
+      "sources": [],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:c2da3542cc82",
+      "kind": "node",
+      "what": "added",
+      "why": "new Drug added",
+      "edge_or_node_ref": "CHEMBL3137343",
+      "sources": [
+        "id:CHEMBL3137343"
+      ],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:a2b91f0af8c5",
+      "kind": "node",
+      "what": "added",
+      "why": "new target gene linked",
+      "edge_or_node_ref": "ENSG00000188389",
+      "sources": [
+        "id:ENSG00000188389"
+      ],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:47a6a3ce7c6f",
+      "kind": "node",
+      "what": "added",
+      "why": "new Condition added",
+      "edge_or_node_ref": "MONDO_0005105",
+      "sources": [],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:ac2f7a692890",
+      "kind": "node",
+      "what": "added",
+      "why": "new Condition added",
+      "edge_or_node_ref": "MONDO_0005233",
+      "sources": [],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:fee1a258e923",
+      "kind": "node",
+      "what": "added",
+      "why": "new trial registered",
+      "edge_or_node_ref": "NCT03631784",
+      "sources": [
+        "id:NCT03631784"
+      ],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:43f2d9b79de4",
+      "kind": "node",
+      "what": "added",
+      "why": "new trial registered",
+      "edge_or_node_ref": "NCT06045767",
+      "sources": [
+        "id:NCT06045767"
+      ],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:159aba1f6e99",
+      "kind": "node",
+      "what": "added",
+      "why": "new publication indexed",
+      "edge_or_node_ref": "PMID:42628840",
+      "sources": [
+        "id:PMID:42628840"
+      ],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:bd5c65f615c0",
+      "kind": "node",
+      "what": "added",
+      "why": "new publication indexed",
+      "edge_or_node_ref": "PMID:42633086",
+      "sources": [
+        "id:PMID:42633086"
+      ],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:61829bbf2cd4",
+      "kind": "node",
+      "what": "added",
+      "why": "new Condition added",
+      "edge_or_node_ref": "condition:non_small_cell_lung_cancer",
+      "sources": [],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:28086b858b00",
+      "kind": "node",
+      "what": "added",
+      "why": "new Drug added",
+      "edge_or_node_ref": "drug:pembrolizumab",
+      "sources": [],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:6559da2b3059",
+      "kind": "node",
+      "what": "added",
+      "why": "new SourceDoc added",
+      "edge_or_node_ref": "setid:9333c79b-d487-4538-a9f0-71b91a02b287",
+      "sources": [],
+      "evidence_urls": [],
+      "trust_before": null,
+      "trust_after": null,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:27fa17097ee8",
+      "kind": "edge",
+      "what": "added",
+      "why": "new drug–target–disease spine edge",
+      "edge_or_node_ref": "edge_1",
+      "sources": [],
+      "evidence_urls": [
+        "https://platform.opentargets.org/drug/CHEMBL3137343",
+        "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL3137343/"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:31428f4079d0",
+      "kind": "edge",
+      "what": "added",
+      "why": "new supporting evidence edge",
+      "edge_or_node_ref": "edge_10",
+      "sources": [],
+      "evidence_urls": [
+        "https://pubmed.ncbi.nlm.nih.gov/42633086/",
+        "https://europepmc.org/article/MED/42633086"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:65e8016cd3aa",
+      "kind": "edge",
+      "what": "added",
+      "why": "new drug–target–disease spine edge",
+      "edge_or_node_ref": "edge_2",
+      "sources": [],
+      "evidence_urls": [
+        "https://platform.opentargets.org/drug/CHEMBL3137343"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:f216b9fab7f7",
+      "kind": "edge",
+      "what": "added",
+      "why": "new drug–target–disease spine edge",
+      "edge_or_node_ref": "edge_3",
+      "sources": [],
+      "evidence_urls": [
+        "https://platform.opentargets.org/drug/CHEMBL3137343"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:c26764ebb37b",
+      "kind": "edge",
+      "what": "added",
+      "why": "new trial registered",
+      "edge_or_node_ref": "edge_4",
+      "sources": [],
+      "evidence_urls": [
+        "https://clinicaltrials.gov/study/NCT06045767"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:a5bd1cb00030",
+      "kind": "edge",
+      "what": "added",
+      "why": "new trial registered",
+      "edge_or_node_ref": "edge_5",
+      "sources": [],
+      "evidence_urls": [
+        "https://clinicaltrials.gov/study/NCT03631784"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:6a0065e753f7",
+      "kind": "edge",
+      "what": "added",
+      "why": "new supporting evidence edge",
+      "edge_or_node_ref": "edge_6",
+      "sources": [],
+      "evidence_urls": [
+        "https://pubmed.ncbi.nlm.nih.gov/42628840/",
+        "https://europepmc.org/article/MED/42628840"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:3f368f5023b6",
+      "kind": "edge",
+      "what": "added",
+      "why": "new adverse-event report term (reports, not rates)",
+      "edge_or_node_ref": "edge_7",
+      "sources": [],
+      "evidence_urls": [
+        "https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct%3A%22Keytruda%22&limit=5"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:8b590648772c",
+      "kind": "edge",
+      "what": "added",
+      "why": "label update",
+      "edge_or_node_ref": "edge_8",
+      "sources": [],
+      "evidence_urls": [
+        "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    },
+    {
+      "id": "chg:added:b54ecbb96533",
+      "kind": "edge",
+      "what": "added",
+      "why": "label update",
+      "edge_or_node_ref": "edge_9",
+      "sources": [],
+      "evidence_urls": [
+        "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
+      ],
+      "trust_before": null,
+      "trust_after": 0.4113,
+      "at": "2026-08-24T17:36:17.674315+00:00"
+    }
+  ]
+}

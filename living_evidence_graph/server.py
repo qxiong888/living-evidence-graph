@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query
@@ -10,10 +11,19 @@ from pydantic import BaseModel, Field
 
 from living_evidence_graph.agent import daily_refresh, ingest_goal
 from living_evidence_graph.changes import diff, digest_document, load_digest, load_snapshot
-from living_evidence_graph.config import DEMO_GOAL, GEMINI_MODEL
+from living_evidence_graph.config import DEMO_GOAL, DEMO_GRAPH_SLUG, GEMINI_MODEL
 from living_evidence_graph.graph_store import load_graph
 from living_evidence_graph.private_ingest import ingest_directory, library_status
 from living_evidence_graph.rag import DISCLAIMER, rag_compare
+from living_evidence_graph.seed import seed_demo_graph_if_missing
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Copy baked fixtures/demo_graph into GRAPH_DIR when the slug file is missing."""
+    seed_demo_graph_if_missing()
+    yield
+
 
 app = FastAPI(
     title="Living Evidence Graph",
@@ -21,12 +31,14 @@ app = FastAPI(
         "Text-first living evidence graph for LLM use. "
         "Default demo: pembrolizumab / Keytruda (NSCLC). "
         "Public data only — not a medical product. "
+        "GET /graph = demo graph node/edge counts (seeded 14/10 on cold start). "
         "POST /rag = retrieval-augmented answer (graph edges only; no fine-tuning). "
         "GET /changes = human-readable change digest (what / why / sources). "
         "POST /library/ingest = personal/enterprise private folder → private graph "
         "(never mixed with the public Keytruda demo)."
     ),
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 
@@ -71,6 +83,9 @@ class LibraryIngestBody(BaseModel):
 
 @app.get("/health")
 def health() -> dict[str, Any]:
+    seed = seed_demo_graph_if_missing()
+    slug = DEMO_GRAPH_SLUG
+    doc = load_graph(slug)
     return {
         "ok": True,
         "model": GEMINI_MODEL,
@@ -80,7 +95,40 @@ def health() -> dict[str, Any]:
         "rag": True,
         "changes": True,
         "private_library": True,
+        "graph_slug": slug,
+        "node_count": len(doc.get("nodes") or []),
+        "edge_count": len(doc.get("edges") or []),
+        "graph_seeded": bool(seed.get("seeded") or (doc.get("nodes") or doc.get("edges"))),
     }
+
+
+@app.get("/graph")
+def get_graph(
+    goal_slug: str | None = Query(
+        default=None,
+        description="Graph slug; default is the baked Keytruda/NSCLC demo",
+    ),
+) -> JSONResponse:
+    """Public demo graph: node/edge counts plus the document (seeded on cold start)."""
+    seed_demo_graph_if_missing()
+    slug = (goal_slug or "").strip() or DEMO_GRAPH_SLUG
+    doc = load_graph(slug)
+    nodes = list(doc.get("nodes") or [])
+    edges = list(doc.get("edges") or [])
+    if not nodes and not edges:
+        raise HTTPException(404, f"no graph for slug={slug}")
+    return JSONResponse(
+        {
+            "goal": doc.get("goal"),
+            "goal_slug": slug,
+            "node_count": len(nodes),
+            "edge_count": len(edges),
+            "nodes": nodes,
+            "edges": edges,
+            "meta": doc.get("meta") or {},
+            "disclaimer": DISCLAIMER,
+        }
+    )
 
 
 @app.post("/run")

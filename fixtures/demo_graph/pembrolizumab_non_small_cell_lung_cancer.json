@@ -1,0 +1,447 @@
+{
+  "goal": "pembrolizumab / Keytruda NSCLC solid tumor evidence graph",
+  "nodes": [
+    {
+      "id": "CHEMBL3137343",
+      "type": "Drug",
+      "label": "pembrolizumab (Keytruda)",
+      "props": {}
+    },
+    {
+      "id": "ENSG00000188389",
+      "type": "Gene",
+      "label": "PDCD1",
+      "props": {}
+    },
+    {
+      "id": "MONDO_0005233",
+      "type": "Condition",
+      "label": "non-small cell lung carcinoma",
+      "props": {}
+    },
+    {
+      "id": "MONDO_0005105",
+      "type": "Condition",
+      "label": "melanoma",
+      "props": {}
+    },
+    {
+      "id": "NCT06045767",
+      "type": "Trial",
+      "label": "NCT06045767: T-Cell Repertoire Sequencing in NSCLC",
+      "props": {}
+    },
+    {
+      "id": "NCT03631784",
+      "type": "Trial",
+      "label": "NCT03631784: KEYNOTE-799 in Stage III NSCLC",
+      "props": {}
+    },
+    {
+      "id": "PMID:42628840",
+      "type": "Publication",
+      "label": "PMID 42628840: Five-Year Outcomes of KEYNOTE-671",
+      "props": {}
+    },
+    {
+      "id": "PMID:42633086",
+      "type": "Publication",
+      "label": "PMID 42633086: Nivolumab after recurrent pembrolizumab-associated hepatotoxicity",
+      "props": {}
+    },
+    {
+      "id": "AE:pneumonitis",
+      "type": "AdverseEventConcept",
+      "label": "pneumonitis",
+      "props": {}
+    },
+    {
+      "id": "AE:hepatitis",
+      "type": "AdverseEventConcept",
+      "label": "hepatitis",
+      "props": {}
+    },
+    {
+      "id": "AE:Dyspnoea",
+      "type": "AdverseEventConcept",
+      "label": "Dyspnoea",
+      "props": {}
+    },
+    {
+      "id": "setid:9333c79b-d487-4538-a9f0-71b91a02b287",
+      "type": "SourceDoc",
+      "label": "DailyMed Label: KEYTRUDA",
+      "props": {}
+    },
+    {
+      "id": "drug:pembrolizumab",
+      "type": "Drug",
+      "label": "Keytruda (pembrolizumab)",
+      "props": {
+        "brand": "Keytruda",
+        "ingredient": "pembrolizumab"
+      }
+    },
+    {
+      "id": "condition:non_small_cell_lung_cancer",
+      "type": "Condition",
+      "label": "non-small cell lung cancer",
+      "props": {}
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "type": "drug_targets_gene",
+      "source": "CHEMBL3137343",
+      "target": "ENSG00000188389",
+      "evidence_urls": [
+        "https://platform.opentargets.org/drug/CHEMBL3137343",
+        "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL3137343/"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    },
+    {
+      "id": "edge_2",
+      "type": "gene_associated_with_disease",
+      "source": "ENSG00000188389",
+      "target": "MONDO_0005233",
+      "evidence_urls": [
+        "https://platform.opentargets.org/drug/CHEMBL3137343"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    },
+    {
+      "id": "edge_3",
+      "type": "drug_indicated_for_disease",
+      "source": "CHEMBL3137343",
+      "target": "MONDO_0005233",
+      "evidence_urls": [
+        "https://platform.opentargets.org/drug/CHEMBL3137343"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    },
+    {
+      "id": "edge_4",
+      "type": "studied_in",
+      "source": "CHEMBL3137343",
+      "target": "NCT06045767",
+      "evidence_urls": [
+        "https://clinicaltrials.gov/study/NCT06045767"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    },
+    {
+      "id": "edge_5",
+      "type": "studied_in",
+      "source": "CHEMBL3137343",
+      "target": "NCT03631784",
+      "evidence_urls": [
+        "https://clinicaltrials.gov/study/NCT03631784"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    },
+    {
+      "id": "edge_6",
+      "type": "supports",
+      "source": "PMID:42628840",
+      "target": "MONDO_0005233",
+      "evidence_urls": [
+        "https://pubmed.ncbi.nlm.nih.gov/42628840/",
+        "https://europepmc.org/article/MED/42628840"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    },
+    {
+      "id": "edge_7",
+      "type": "reports_ae",
+      "source": "CHEMBL3137343",
+      "target": "AE:Dyspnoea",
+      "evidence_urls": [
+        "https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct%3A%22Keytruda%22&limit=5"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "label": "FAERS voluntary reports — not rates, not causation, not a safety signal.",
+        "note": "openFDA FAERS = voluntary reports only — not incidence rates, not causation."
+      }
+    },
+    {
+      "id": "edge_8",
+      "type": "warns_ae",
+      "source": "setid:9333c79b-d487-4538-a9f0-71b91a02b287",
+      "target": "AE:pneumonitis",
+      "evidence_urls": [
+        "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    },
+    {
+      "id": "edge_9",
+      "type": "warns_ae",
+      "source": "setid:9333c79b-d487-4538-a9f0-71b91a02b287",
+      "target": "AE:hepatitis",
+      "evidence_urls": [
+        "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    },
+    {
+      "id": "edge_10",
+      "type": "supports",
+      "source": "PMID:42633086",
+      "target": "AE:hepatitis",
+      "evidence_urls": [
+        "https://pubmed.ncbi.nlm.nih.gov/42633086/",
+        "https://europepmc.org/article/MED/42633086"
+      ],
+      "sources": [],
+      "first_seen": "2026-08-24T17:36:17.671819+00:00",
+      "last_seen": "2026-08-24T17:36:17.671819+00:00",
+      "trust_score": 0.4113,
+      "trust_breakdown": {
+        "source_tier": 0.3,
+        "corroboration": 0.0,
+        "recency": 0.7815,
+        "consistency": 1.0,
+        "retraction_penalty": 0.0,
+        "weights": {
+          "source_tier": 0.35,
+          "corroboration": 0.3,
+          "recency": 0.2,
+          "consistency": 0.15
+        },
+        "raw_before_clip": 0.4113
+      },
+      "retracted": false,
+      "age_days": 90.0,
+      "props": {
+        "note": "Public-record evidence link for retrieval — not a causation claim."
+      }
+    }
+  ],
+  "meta": {
+    "demo": true,
+    "source_mode": {
+      "clinicaltrials": "live",
+      "pubmed": "live",
+      "openfda": "live",
+      "dailymed": "live",
+      "europepmc": "live",
+      "opentargets": "live",
+      "chembl": "live"
+    },
+    "gemini": {
+      "used": true,
+      "mode": "gemini_structure",
+      "model": "gemini-3.5-flash",
+      "summary": "This graph maps pembrolizumab (Keytruda) to its target gene PDCD1 and associated conditions like non-small cell lung carcinoma. It links clinical trials, publications, and adverse events from DailyMed and openFDA FAERS for retrieval-oriented evidence mapping. No clinical causation or incidence rates are implied."
+    },
+    "disclaimer": "Public data only. No PHI. Edges are evidence links for LLM retrieval — not clinical advice, not causation, not incidence rates. No FDA/NLM/Open Targets/ChEMBL endorsement. LLM path is retrieval-only over the graph (no abstract/full-text training dumps).",
+    "attribution_block": {
+      "open_targets": "Open Targets Platform (https://platform.opentargets.org/) — data available under CC0 1.0 Universal. This project does not claim endorsement by Open Targets or partners.",
+      "chembl": "ChEMBL (https://www.ebi.ac.uk/chembl/) — CC BY-SA 3.0. Cite: Mendez D et al. Nucleic Acids Res. 2019;47(D1):D930–D940. doi:10.1093/nar/gky1075. ChEMBL-derived graph subsets are ShareAlike. This project does not claim endorsement by EMBL-EBI / ChEMBL.",
+      "dailymed": "FDA SPL via NLM DailyMed (public). Not causation; not rates.",
+      "europepmc": "Europe PMC (EMBL-EBI). Status signals only — not clinical advice.",
+      "openfda": "openFDA FAERS voluntary reports (FDA) — not rates, not causation; not an FDA endorsement.",
+      "nlm_courtesy": "ClinicalTrials.gov, DailyMed, and PubMed: Courtesy of the U.S. National Library of Medicine. Not endorsed by NLM/NIH/NCBI.",
+      "ncbi": "NCBI disclaimer: use of NCBI information does not imply endorsement; see https://www.ncbi.nlm.nih.gov/home/about/policies/"
+    },
+    "saved_at": "2026-08-24T17:36:17.673675+00:00"
+  }
+}
