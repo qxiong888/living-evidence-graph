@@ -142,7 +142,7 @@ async function run() {
 }
 
 document.getElementById("run").addEventListener("click", run);
-boot();
+boot().then(run);
 </script>
 </body>
 </html>
