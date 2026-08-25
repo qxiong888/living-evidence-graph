@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from living_evidence_graph.config import GEMINI_MODEL, gemini_api_key, has_gemini_key
-from living_evidence_graph.schema import Edge, Node
+from living_evidence_graph.schema import Edge, Node, sources_from_evidence_urls
 
 
 def _now_iso() -> str:
@@ -1138,7 +1138,12 @@ def _normalize_gemini_graph(
                 "source": str(src),
                 "target": str(tgt),
                 "evidence_urls": [str(u) for u in (e.get("evidence_urls") or []) if u][:12],
-                "sources": [str(s) for s in (e.get("sources") or []) if s],
+                "sources": (
+                    [str(s) for s in (e.get("sources") or []) if s]
+                    or sources_from_evidence_urls(
+                        [str(u) for u in (e.get("evidence_urls") or []) if u]
+                    )
+                ),
                 "first_seen": now,
                 "last_seen": now,
                 "trust_score": 0.0,

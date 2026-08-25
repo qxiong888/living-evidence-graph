@@ -20,7 +20,7 @@ from living_evidence_graph.config import (
     gemini_api_key,
     has_gemini_key,
 )
-from living_evidence_graph.schema import TRIANGLE_EDGE_TYPES
+from living_evidence_graph.schema import TRIANGLE_EDGE_TYPES, display_source_labels
 
 DISCLAIMER = (
     "Public evidence graph demo only — not a medical product. "
@@ -393,7 +393,8 @@ def _compact_edge(
         "target": tgt,
         "target_label": tgt_node.get("label") or tgt,
         "trust_score": edge.get("trust_score"),
-        "sources": list(edge.get("sources") or []),
+        "sources": list(edge.get("sources") or [])
+        or display_source_labels(None, list(edge.get("evidence_urls") or [])),
         "evidence_urls": list(edge.get("evidence_urls") or [])[:8],
         "triangle_spine": str(edge.get("type") or "") in TRIANGLE_EDGE_TYPES,
         "retrieval_score": round(float(retrieval_score), 4),
@@ -416,7 +417,7 @@ def format_context(edges: list[dict[str, Any]]) -> str:
     for i, e in enumerate(edges, 1):
         urls = e.get("evidence_urls") or []
         url_s = "; ".join(urls[:5]) if urls else "(none)"
-        srcs = ", ".join(e.get("sources") or []) or "(none)"
+        srcs = ", ".join(display_source_labels(e.get("sources"), e.get("evidence_urls"))) or "(none)"
         spine = " [triangle spine]" if e.get("triangle_spine") else ""
         lines.append(
             f"{i}. [{e.get('type')}]{spine} "

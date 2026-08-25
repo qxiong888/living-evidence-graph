@@ -99,13 +99,16 @@
         "https://platform.opentargets.org/drug/CHEMBL3137343",
         "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL3137343/"
       ],
-      "sources": [],
+      "sources": [
+        "opentargets_kb",
+        "chembl"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.7513,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.7,
+        "corroboration": 0.6667,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -115,7 +118,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.7513
       },
       "retracted": false,
       "age_days": 90.0,
@@ -131,13 +134,15 @@
       "evidence_urls": [
         "https://platform.opentargets.org/drug/CHEMBL3137343"
       ],
-      "sources": [],
+      "sources": [
+        "opentargets_kb"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.6513,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.7,
+        "corroboration": 0.3333,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -147,7 +152,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.6513
       },
       "retracted": false,
       "age_days": 90.0,
@@ -163,13 +168,15 @@
       "evidence_urls": [
         "https://platform.opentargets.org/drug/CHEMBL3137343"
       ],
-      "sources": [],
+      "sources": [
+        "opentargets_kb"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.6513,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.7,
+        "corroboration": 0.3333,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -179,7 +186,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.6513
       },
       "retracted": false,
       "age_days": 90.0,
@@ -195,13 +202,15 @@
       "evidence_urls": [
         "https://clinicaltrials.gov/study/NCT06045767"
       ],
-      "sources": [],
+      "sources": [
+        "clinicaltrials_registry"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.7213,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.9,
+        "corroboration": 0.3333,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -211,7 +220,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.7213
       },
       "retracted": false,
       "age_days": 90.0,
@@ -227,13 +236,15 @@
       "evidence_urls": [
         "https://clinicaltrials.gov/study/NCT03631784"
       ],
-      "sources": [],
+      "sources": [
+        "clinicaltrials_registry"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.7213,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.9,
+        "corroboration": 0.3333,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -243,7 +254,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.7213
       },
       "retracted": false,
       "age_days": 90.0,
@@ -260,13 +271,16 @@
         "https://pubmed.ncbi.nlm.nih.gov/42628840/",
         "https://europepmc.org/article/MED/42628840"
       ],
-      "sources": [],
+      "sources": [
+        "pubmed_peer_reviewed",
+        "europepmc"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.7863,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.8,
+        "corroboration": 0.6667,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -276,7 +290,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.7863
       },
       "retracted": false,
       "age_days": 90.0,
@@ -292,13 +306,15 @@
       "evidence_urls": [
         "https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct%3A%22Keytruda%22&limit=5"
       ],
-      "sources": [],
+      "sources": [
+        "openfda_faers"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.5988,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.55,
+        "corroboration": 0.3333,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -308,7 +324,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.5988
       },
       "retracted": false,
       "age_days": 90.0,
@@ -325,13 +341,15 @@
       "evidence_urls": [
         "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
       ],
-      "sources": [],
+      "sources": [
+        "dailymed_label"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.7388,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.95,
+        "corroboration": 0.3333,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -341,7 +359,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.7388
       },
       "retracted": false,
       "age_days": 90.0,
@@ -357,13 +375,15 @@
       "evidence_urls": [
         "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
       ],
-      "sources": [],
+      "sources": [
+        "dailymed_label"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.7388,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.95,
+        "corroboration": 0.3333,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -373,7 +393,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.7388
       },
       "retracted": false,
       "age_days": 90.0,
@@ -390,13 +410,16 @@
         "https://pubmed.ncbi.nlm.nih.gov/42633086/",
         "https://europepmc.org/article/MED/42633086"
       ],
-      "sources": [],
+      "sources": [
+        "pubmed_peer_reviewed",
+        "europepmc"
+      ],
       "first_seen": "2026-08-24T17:36:17.671819+00:00",
       "last_seen": "2026-08-24T17:36:17.671819+00:00",
-      "trust_score": 0.4113,
+      "trust_score": 0.7863,
       "trust_breakdown": {
-        "source_tier": 0.3,
-        "corroboration": 0.0,
+        "source_tier": 0.8,
+        "corroboration": 0.6667,
         "recency": 0.7815,
         "consistency": 1.0,
         "retraction_penalty": 0.0,
@@ -406,7 +429,7 @@
           "recency": 0.2,
           "consistency": 0.15
         },
-        "raw_before_clip": 0.4113
+        "raw_before_clip": 0.7863
       },
       "retracted": false,
       "age_days": 90.0,

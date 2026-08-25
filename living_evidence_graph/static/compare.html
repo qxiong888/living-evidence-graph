@@ -53,6 +53,27 @@
 const ID_RE = /\b(NCT\d+|PMID[:\s]?\d+|CHEMBL\d+|ENSG\d+|MONDO_\d+|setid:[0-9a-f-]+)\b/gi;
 const EDGE_RE = /\b(edge_\d+|edge:[A-Za-z0-9:_-]+)\b/g;
 
+
+function sourceLabels(e) {
+  const src = (e.sources || []).filter(Boolean);
+  if (src.length) return src.join(", ");
+  const labels = [];
+  for (const u of e.evidence_urls || []) {
+    let host = "";
+    try { host = new URL(u).hostname.replace(/^www\./, "").toLowerCase(); } catch { continue; }
+    let label = host;
+    if (host.includes("opentargets")) label = "opentargets";
+    else if (host.includes("chembl") || (host.includes("ebi.ac.uk") && String(u).includes("chembl"))) label = "chembl";
+    else if (host.includes("clinicaltrials")) label = "clinicaltrials";
+    else if (host.includes("pubmed") || host.includes("ncbi.nlm.nih.gov")) label = "pubmed";
+    else if (host.includes("europepmc")) label = "europepmc";
+    else if (host.includes("dailymed")) label = "dailymed";
+    else if (host.includes("fda.gov") || host.includes("openfda")) label = "openfda";
+    if (label && !labels.includes(label)) labels.push(label);
+  }
+  return labels.join(", ");
+}
+
 function esc(s) {
   return String(s || "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
 }
@@ -106,7 +127,9 @@ async function run() {
     document.getElementById("strict").innerHTML = markEdges(((data.strict || {}).text) || "");
     document.getElementById("edges").innerHTML = edges.map((e) =>
       "<li><code>" + esc(e.id) + "</code> · " + esc(e.type) + " · " +
-      esc(e.source_label || e.source) + " → " + esc(e.target_label || e.target) + "</li>"
+      esc(e.source_label || e.source) + " → " + esc(e.target_label || e.target) +
+      " · trust=" + esc(e.trust_score) +
+      " · sources=" + esc(sourceLabels(e) || "—") + "</li>"
     ).join("") || "<li>No edges retrieved.</li>";
     status.textContent = "graph_slug=" + (data.graph_slug || "default") +
       " · " + edges.length + " edges · gemini_used=" + data.gemini_used;

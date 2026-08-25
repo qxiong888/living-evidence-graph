@@ -197,13 +197,16 @@
       "what": "added",
       "why": "new drug–target–disease spine edge",
       "edge_or_node_ref": "edge_1",
-      "sources": [],
+      "sources": [
+        "opentargets_kb",
+        "chembl"
+      ],
       "evidence_urls": [
         "https://platform.opentargets.org/drug/CHEMBL3137343",
         "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL3137343/"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.7513,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -212,13 +215,16 @@
       "what": "added",
       "why": "new supporting evidence edge",
       "edge_or_node_ref": "edge_10",
-      "sources": [],
+      "sources": [
+        "pubmed_peer_reviewed",
+        "europepmc"
+      ],
       "evidence_urls": [
         "https://pubmed.ncbi.nlm.nih.gov/42633086/",
         "https://europepmc.org/article/MED/42633086"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.7863,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -227,12 +233,14 @@
       "what": "added",
       "why": "new drug–target–disease spine edge",
       "edge_or_node_ref": "edge_2",
-      "sources": [],
+      "sources": [
+        "opentargets_kb"
+      ],
       "evidence_urls": [
         "https://platform.opentargets.org/drug/CHEMBL3137343"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.6513,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -241,12 +249,14 @@
       "what": "added",
       "why": "new drug–target–disease spine edge",
       "edge_or_node_ref": "edge_3",
-      "sources": [],
+      "sources": [
+        "opentargets_kb"
+      ],
       "evidence_urls": [
         "https://platform.opentargets.org/drug/CHEMBL3137343"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.6513,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -255,12 +265,14 @@
       "what": "added",
       "why": "new trial registered",
       "edge_or_node_ref": "edge_4",
-      "sources": [],
+      "sources": [
+        "clinicaltrials_registry"
+      ],
       "evidence_urls": [
         "https://clinicaltrials.gov/study/NCT06045767"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.7213,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -269,12 +281,14 @@
       "what": "added",
       "why": "new trial registered",
       "edge_or_node_ref": "edge_5",
-      "sources": [],
+      "sources": [
+        "clinicaltrials_registry"
+      ],
       "evidence_urls": [
         "https://clinicaltrials.gov/study/NCT03631784"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.7213,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -283,13 +297,16 @@
       "what": "added",
       "why": "new supporting evidence edge",
       "edge_or_node_ref": "edge_6",
-      "sources": [],
+      "sources": [
+        "pubmed_peer_reviewed",
+        "europepmc"
+      ],
       "evidence_urls": [
         "https://pubmed.ncbi.nlm.nih.gov/42628840/",
         "https://europepmc.org/article/MED/42628840"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.7863,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -298,12 +315,14 @@
       "what": "added",
       "why": "new adverse-event report term (reports, not rates)",
       "edge_or_node_ref": "edge_7",
-      "sources": [],
+      "sources": [
+        "openfda_faers"
+      ],
       "evidence_urls": [
         "https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct%3A%22Keytruda%22&limit=5"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.5988,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -312,12 +331,14 @@
       "what": "added",
       "why": "label update",
       "edge_or_node_ref": "edge_8",
-      "sources": [],
+      "sources": [
+        "dailymed_label"
+      ],
       "evidence_urls": [
         "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.7388,
       "at": "2026-08-24T17:36:17.674315+00:00"
     },
     {
@@ -326,12 +347,14 @@
       "what": "added",
       "why": "label update",
       "edge_or_node_ref": "edge_9",
-      "sources": [],
+      "sources": [
+        "dailymed_label"
+      ],
       "evidence_urls": [
         "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
       ],
       "trust_before": null,
-      "trust_after": 0.4113,
+      "trust_after": 0.7388,
       "at": "2026-08-24T17:36:17.674315+00:00"
     }
   ]

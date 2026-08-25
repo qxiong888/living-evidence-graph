@@ -76,6 +76,80 @@ ACTIVE_SOURCE_FAMILIES: tuple[str, ...] = (
 )
 
 
+
+# Host / path fragments → SOURCE_TIERS tags. Map only from real evidence URLs.
+_URL_SOURCE_RULES: tuple[tuple[str, str], ...] = (
+    ("opentargets.org", "opentargets_kb"),
+    ("ebi.ac.uk/chembl", "chembl"),
+    ("/chembl/", "chembl"),
+    ("clinicaltrials.gov", "clinicaltrials_registry"),
+    ("pubmed.ncbi.nlm.nih.gov", "pubmed_peer_reviewed"),
+    ("europepmc.org", "europepmc"),
+    ("dailymed", "dailymed_label"),
+    ("api.fda.gov", "openfda_faers"),
+    ("openfda", "openfda_faers"),
+    ("fda.gov", "openfda_faers"),
+)
+
+
+def source_tag_from_url(url: str) -> str | None:
+    """Map one evidence URL to a SOURCE_TIERS tag. None if unrecognized."""
+    u = (url or "").strip().lower()
+    if not u.startswith(("http://", "https://")):
+        return None
+    for needle, tag in _URL_SOURCE_RULES:
+        if needle in u and tag in SOURCE_TIERS:
+            return tag
+    return None
+
+
+def sources_from_evidence_urls(urls: list[str] | None) -> list[str]:
+    """Deduped SOURCE_TIERS tags inferred from real evidence URLs only."""
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in urls or []:
+        tag = source_tag_from_url(str(raw))
+        if tag and tag not in seen:
+            seen.add(tag)
+            out.append(tag)
+    return out
+
+
+def _short_host(url: str) -> str | None:
+    raw = (url or "").strip()
+    if "://" not in raw:
+        return None
+    host = raw.split("://", 1)[1].split("/", 1)[0].split(":", 1)[0]
+    host = host.lower().removeprefix("www.")
+    return host or None
+
+
+def display_source_labels(
+    sources: list[str] | None,
+    evidence_urls: list[str] | None = None,
+) -> list[str]:
+    """Sources-column labels. Prefer stored tags; else short host from URLs."""
+    tags = [str(s) for s in (sources or []) if s]
+    if tags:
+        # preserve order, drop dupes
+        seen: set[str] = set()
+        out: list[str] = []
+        for t in tags:
+            if t not in seen:
+                seen.add(t)
+                out.append(t)
+        return out
+    labels: list[str] = []
+    seen_l: set[str] = set()
+    for raw in evidence_urls or []:
+        tag = source_tag_from_url(str(raw))
+        label = SOURCE_FAMILY.get(tag, tag) if tag else _short_host(str(raw))
+        if label and label not in seen_l:
+            seen_l.add(label)
+            labels.append(label)
+    return labels
+
+
 class Node(TypedDict, total=False):
     id: str
     type: EntityType

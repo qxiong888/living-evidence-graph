@@ -48,3 +48,24 @@ def test_seed_then_load_graph_and_discover_finds_14_10(tmp_path, monkeypatch):
     assert again["seeded"] is False
     assert again["reason"] == "already_present"
     assert len(load_graph(DEMO_GRAPH_SLUG).get("nodes") or []) == 14
+
+
+
+def test_seeded_demo_graph_has_sources_and_varied_trust(tmp_path, monkeypatch):
+    _point_graph_dir(monkeypatch, tmp_path)
+    seed_demo_graph_if_missing(graph_dir=tmp_path)
+    doc = load_graph(DEMO_GRAPH_SLUG)
+    edges = doc.get("edges") or []
+    assert len(doc.get("nodes") or []) == 14
+    assert len(edges) == 10
+    trusts = {float(e.get("trust_score") or 0) for e in edges}
+    assert 0.4113 not in trusts
+    assert len(trusts) >= 3
+    for e in edges:
+        assert e.get("sources"), f"empty sources on {e.get('id')}"
+        assert e.get("evidence_urls"), f"empty evidence_urls on {e.get('id')}"
+        assert e.get("trust_score") != 0.4113
+    spine = {e["type"]: e for e in edges}
+    assert "opentargets_kb" in (spine["drug_targets_gene"].get("sources") or [])
+    assert "chembl" in (spine["drug_targets_gene"].get("sources") or [])
+    assert "dailymed_label" in (spine["warns_ae"].get("sources") or [])

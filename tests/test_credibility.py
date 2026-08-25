@@ -142,3 +142,67 @@ def test_recompute_edges_sets_scores():
     assert "trust_score" in out[0]
     assert 0.0 <= out[0]["trust_score"] <= 1.0
     assert out[0]["trust_breakdown"]["source_tier"] == 0.7
+
+
+
+def test_url_maps_to_source_tier_tags():
+    from living_evidence_graph.schema import (
+        display_source_labels,
+        source_tag_from_url,
+        sources_from_evidence_urls,
+    )
+
+    assert source_tag_from_url("https://platform.opentargets.org/drug/CHEMBL3137343") == "opentargets_kb"
+    assert source_tag_from_url(
+        "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL3137343/"
+    ) == "chembl"
+    assert source_tag_from_url("https://clinicaltrials.gov/study/NCT03631784") == "clinicaltrials_registry"
+    assert source_tag_from_url("https://pubmed.ncbi.nlm.nih.gov/42628840/") == "pubmed_peer_reviewed"
+    assert source_tag_from_url("https://europepmc.org/article/MED/42628840") == "europepmc"
+    assert source_tag_from_url(
+        "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=9333c79b-d487-4538-a9f0-71b91a02b287"
+    ) == "dailymed_label"
+    assert source_tag_from_url(
+        "https://api.fda.gov/drug/event.json?search=patient.drug.medicinalproduct%3A%22Keytruda%22&limit=5"
+    ) == "openfda_faers"
+    assert source_tag_from_url("NCT03631784") is None
+    assert source_tag_from_url("PMID:42628840") is None
+
+    tags = sources_from_evidence_urls(
+        [
+            "https://platform.opentargets.org/drug/CHEMBL3137343",
+            "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL3137343/",
+            "https://platform.opentargets.org/drug/CHEMBL3137343",
+        ]
+    )
+    assert tags == ["opentargets_kb", "chembl"]
+
+    # Fallback host labels only when sources are empty.
+    hosts = display_source_labels(
+        [],
+        ["https://platform.opentargets.org/drug/CHEMBL3137343"],
+    )
+    assert hosts == ["opentargets"]
+    assert display_source_labels(["opentargets_kb"], ["https://example.org"]) == ["opentargets_kb"]
+
+
+def test_recompute_backfills_sources_from_urls():
+    edges = [
+        {
+            "id": "e1",
+            "type": "drug_targets_gene",
+            "source": "a",
+            "target": "b",
+            "sources": [],
+            "evidence_urls": [
+                "https://platform.opentargets.org/drug/CHEMBL3137343",
+                "https://www.ebi.ac.uk/chembl/compound_report_card/CHEMBL3137343/",
+            ],
+            "age_days": 90.0,
+        }
+    ]
+    out = recompute_edges(edges)
+    assert out[0]["sources"] == ["opentargets_kb", "chembl"]
+    assert out[0]["trust_score"] != 0.4113
+    assert out[0]["trust_breakdown"]["source_tier"] == 0.7
+    assert out[0]["trust_breakdown"]["corroboration"] > 0

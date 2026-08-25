@@ -11,7 +11,7 @@ from __future__ import annotations
 import math
 from typing import Any, Iterable, Mapping, Sequence
 
-from living_evidence_graph.schema import SOURCE_FAMILY, SOURCE_TIERS
+from living_evidence_graph.schema import SOURCE_FAMILY, SOURCE_TIERS, sources_from_evidence_urls
 
 WEIGHT_SOURCE = 0.35
 WEIGHT_CORROBORATION = 0.30
@@ -124,8 +124,13 @@ def recompute_edges(
         # For the contradicts edge itself, consistency is still reduced
         if e.get("type") == "contradicts":
             has_c = True
+        srcs = [str(s) for s in (e.get("sources") or []) if s]
+        if not srcs:
+            srcs = sources_from_evidence_urls(list(e.get("evidence_urls") or []))
+            if srcs:
+                e["sources"] = srcs
         scored = score_edge(
-            sources=list(e.get("sources") or []),
+            sources=srcs,
             age_days=e.get("age_days"),
             has_contradict=has_c,
             retracted=bool(e.get("retracted")),

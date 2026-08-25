@@ -20,6 +20,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from living_evidence_graph.config import DEMO_DIR  # noqa: E402
+from living_evidence_graph.schema import display_source_labels  # noqa: E402
 from living_evidence_graph.rag import (  # noqa: E402
     DISCLAIMER,
     _call_gemini,
@@ -72,6 +73,22 @@ _PHRASE_HIGHLIGHTS: list[tuple[str, str]] = [
     ("KEYNOTE-888", "red"),
     ("KEYNOTE 888", "red"),
 ]
+
+# Verified 2026-08-25 (Reed + ClinicalTrials.gov): bare paired
+# KEYNOTE-888 = NCT04875416. That PAIR does not exist. NCT04875416 is
+# PGB2 (ALS/HSP/PLS/PMA/FTD, University of Miami) — not Keytruda NSCLC.
+# Do not claim the NCT string is unregistered. Do not invent an HR.
+_FAB_KN = "KEYNOTE-888"
+_FAB_NCT = "NCT04875416"
+_PAIR_CALLOUT_HTML = (
+    "<span class='fab-note' role='note'>"
+    "<strong>Invented pairing:</strong> KEYNOTE-888 ≠ NCT04875416. "
+    "NCT04875416 is an ALS observational study (PGB2). "
+    "No Merck KEYNOTE-888 NSCLC OS trial on ClinicalTrials.gov."
+    "<span class='sub'>KEYNOTE-888 only appears as a secondary ID "
+    "on a different NCT (03696212).</span>"
+    "</span>"
+)
 
 
 def _clip(text: str, n: int = 900) -> str:
@@ -136,34 +153,62 @@ def _window_around(text: str, idx: int, before: int = 80, after: int = 420) -> s
 
 
 def _demo_bare_excerpt(text: str, limit: int = 1280) -> str:
-    """Keep invented NCT/HR and the KEYNOTE-888 clause above the fold."""
+    """Keep the invented KEYNOTE-888 pairing heading above the fold."""
     t = (text or "").strip()
-    if len(t) <= limit:
-        return t
-    sep = "\n…\n"
-    parts: list[str] = []
     m888 = _KN888_RE.search(t)
-    if m888:
-        parts.append(_window_around(t, m888.start(), before=40, after=520))
-    m_hr = _HR_RE.search(t)
-    if m_hr and (not m888 or abs(m_hr.start() - m888.start()) > 40):
-        parts.append(_window_around(t, m_hr.start(), before=50, after=280))
-    m_id = _ID_RE.search(t)
-    if m_id:
-        parts.append(_window_around(t, m_id.start(), before=40, after=360))
-    # Indication / target head so graph-backed clauses stay visible too.
-    head = t[:280].rstrip()
-    if head and head not in "".join(parts):
-        parts.insert(0, head)
-    parts = [c for c in parts if c]
-    if not parts:
-        return _clip(t, limit)
+    if not m888:
+        return t if len(t) <= limit else _clip(t, limit)
+    # Snap to the markdown heading that contains the fabricated pair.
+    head_idx = t.rfind("\n### ", 0, m888.start() + 1)
+    if head_idx < 0:
+        head_idx = t.rfind("\n", 0, m888.start())
+    start = (head_idx + 1) if head_idx >= 0 else max(0, m888.start() - 4)
+    pair = t[start : m888.start() + 500].rstrip()
+    sep = "\n…\n"
+    intro = t[:180].rstrip()
+    parts = [pair]
+    if intro and intro[:28] not in pair:
+        parts.append(intro)
     joined = sep.join(parts)
     if len(joined) > limit:
         joined = joined[: limit - 1].rstrip() + "…"
     elif not joined.endswith("…"):
         joined = joined.rstrip() + "…"
     return joined
+
+
+def _attach_fabricated_pair_callout(annotated_html: str) -> str:
+    """Wrap first KEYNOTE-888 + NCT04875416 red marks; arrow-box points at them."""
+    kn = re.search(
+        r"<mark class='uv red'[^>]*>\s*KEYNOTE-888\s*</mark>",
+        annotated_html,
+        re.I,
+    )
+    if not kn:
+        return annotated_html
+    window = annotated_html[kn.start() : kn.start() + 280]
+    nct = re.search(
+        r"<mark class='uv red'[^>]*>\s*NCT04875416\s*</mark>",
+        window,
+        re.I,
+    )
+    wrap_start = kn.start()
+    wrap_end = kn.end() if not nct else kn.start() + nct.end()
+    # Include surrounding parentheses so the pair reads as one unit.
+    if wrap_start > 0 and annotated_html[wrap_start - 1] == "(":
+        wrap_start -= 1
+    if wrap_end < len(annotated_html) and annotated_html[wrap_end] == ")":
+        wrap_end += 1
+    inner = annotated_html[wrap_start:wrap_end]
+    return (
+        annotated_html[:wrap_start]
+        + "<span class='fab-pair'><span class='fab-marks'>"
+        + inner
+        + "</span>"
+        + _PAIR_CALLOUT_HTML
+        + "</span>"
+        + annotated_html[wrap_end:]
+    )
 
 
 def _clip_keep_888(text: str, n: int = 1100) -> str:
@@ -335,7 +380,7 @@ def _edges_compact(edges: list) -> str:
             f"<td>{html.escape(str(e.get('source_label')))} → "
             f"{html.escape(str(e.get('target_label')))}</td>"
             f"<td class='trust'>{html.escape(str(e.get('trust_score')))}</td>"
-            f"<td>{html.escape(', '.join(e.get('sources') or []))}</td>"
+            f"<td>{html.escape(', '.join(display_source_labels(e.get('sources'), e.get('evidence_urls'))))}</td>"
             "</tr>"
         )
     more = ""
@@ -365,17 +410,25 @@ def render_html(result: dict) -> str:
     bare = result.get("bare") or {}
     bare_text = _demo_bare_excerpt(str(bare.get("text") or ""), 1280)
     bare_html, _audit = _annotate_bare_html(bare_text, edges)
+    bare_html = _attach_fabricated_pair_callout(bare_html)
     has_ids = _has_invented_looking_ids(str(bare.get("text") or ""))
     has_hr = _has_invented_hr(str(bare.get("text") or ""))
     invented = _has_bare_invention(str(bare.get("text") or ""), edges)
-    bare_callout = (
-        "Red = Not in retrieved graph. "
-        + (
-            "Unconstrained bare emitted trial IDs or an OS HR absent from retrieved edges."
-            if invented
-            else "Bare cites no checkable edge IDs."
-        )
+    pair_in_text = (
+        _FAB_KN.lower() in str(bare.get("text") or "").lower()
+        and _FAB_NCT in str(bare.get("text") or "").upper()
     )
+    if pair_in_text:
+        bare_callout = (
+            "Red + yellow callout = invented KEYNOTE–NCT pairing vs public registry."
+        )
+    elif invented:
+        bare_callout = (
+            "Red = Not in retrieved graph. "
+            "Unconstrained bare emitted trial IDs absent from retrieved edges."
+        )
+    else:
+        bare_callout = "Bare cites no checkable edge IDs."
     grounded = result.get("grounded") or {}
     grounded_text = _clip_keep_888(str(grounded.get("text") or ""), 1180)
     grounded_html = _annotate_grounded_html(grounded_text, edges)
@@ -449,12 +502,13 @@ def render_html(result: dict) -> str:
     margin-right: 4px;
   }}
   .legend .sw.red {{ background: #FF4D6D; color: #1a0a0c; border: 1px solid #FF3B4A; font-weight: 800; }}
+  .legend .sw.call {{ background: #FFE14D; color: #1a0a0c; border: 2px solid #FF3B4A; font-weight: 800; }}
   .grid {{
     display: grid; grid-template-columns: {grid_cols}; gap: 10px;
   }}
   .card {{
     background: #0f2438; border: 1px solid #2a4a66; border-radius: 12px;
-    padding: 8px 10px 6px; min-height: 380px; position: relative;
+    padding: 7px 9px 5px; min-height: 360px; position: relative;
   }}
   .card h2 {{
     margin: 0 0 4px; font-size: 14px; color: #fff;
@@ -472,7 +526,7 @@ def render_html(result: dict) -> str:
   pre.answer {{
     white-space: pre-wrap; word-break: break-word; font-size: 10.5px; line-height: 1.32;
     background: #0a1a2a; padding: 7px; border-radius: 6px; margin: 0;
-    max-height: 300px; overflow: hidden; color: #dce6f2;
+    max-height: 318px; overflow: hidden; color: #dce6f2;
     font-family: ui-monospace, "DejaVu Sans Mono", monospace;
   }}
   mark.uv {{
@@ -480,6 +534,57 @@ def render_html(result: dict) -> str:
   }}
   mark.uv.red {{
     background: #FF4D6D; color: #1a0a0c; font-weight: 800;
+  }}
+  .fab-pair {{
+    position: relative; display: inline;
+  }}
+  .fab-marks {{
+    display: inline;
+    box-shadow: 0 0 0 2px #FFE14D;
+    border-radius: 3px;
+    padding: 1px 2px;
+    background: rgba(255, 225, 77, 0.18);
+  }}
+  .fab-note {{
+    display: block;
+    margin: 7px 0 6px;
+    padding: 6px 8px 6px 8px;
+    background: #FFE14D;
+    color: #1a0a0c;
+    font-weight: 750;
+    font-size: 10px;
+    line-height: 1.28;
+    border-radius: 6px;
+    border: 2px solid #FF3B4A;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+    white-space: normal;
+    position: relative;
+  }}
+  .fab-note::before {{
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: 36px;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 8px solid #FF3B4A;
+  }}
+  .fab-note::after {{
+    content: "";
+    position: absolute;
+    top: -5px;
+    left: 38px;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 6px solid #FFE14D;
+  }}
+  .fab-note strong {{ font-weight: 900; }}
+  .fab-note .sub {{
+    display: block;
+    margin-top: 3px;
+    font-size: 9px;
+    font-weight: 650;
+    color: #3a1a10;
   }}
   .edgeok {{
     background: #39FF7A; color: #06210f; font-weight: 800;
@@ -523,6 +628,7 @@ def render_html(result: dict) -> str:
     <div class="qbox"><strong>Question:</strong> {q}</div>
     <div class="legend">
       <span><span class="sw red">Red</span> Not in retrieved graph</span>
+      <span><span class="sw call">Red + callout</span> fabricated pairing vs public registry</span>
       <span><span class="sw" style="background:#39FF7A;color:#06210f;">Green ✓</span> Cited retrieved edge_id</span>
     </div>
     <div class="grid">
@@ -557,7 +663,26 @@ def render_html(result: dict) -> str:
 """
 
 
+def render_from_saved(json_path: Path | None = None) -> int:
+    """Re-render HTML from a saved rag_compare.json (no live Gemini call)."""
+    DEMO_DIR.mkdir(parents=True, exist_ok=True)
+    path = json_path or (DEMO_DIR / "rag_compare.json")
+    result = json.loads(path.read_text(encoding="utf-8"))
+    excerpt = _demo_bare_excerpt(str((result.get("bare") or {}).get("text") or ""))
+    _, audit = _annotate_bare_html(excerpt, result.get("retrieved_edges") or [])
+    result["bare_highlight_audit"] = audit
+    html_path = DEMO_DIR / "rag_compare.html"
+    html_path.write_text(render_html(result), encoding="utf-8")
+    print(f"Re-rendered {html_path} from {path}")
+    print(f"highlights={len(audit)}")
+    for a in audit[:16]:
+        print(f"  [{a['severity']}] {a['span'][:80]!r}")
+    return 0
+
+
 def main() -> int:
+    if "--from-json" in sys.argv:
+        return render_from_saved()
     DEMO_DIR.mkdir(parents=True, exist_ok=True)
     result = rag_compare(DEMO_QUESTION, k=8, strict=True)
 
