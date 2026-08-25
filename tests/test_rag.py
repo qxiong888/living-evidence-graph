@@ -80,6 +80,65 @@ def _mini_graph() -> dict:
     }
 
 
+
+def _ten_edge_graph() -> dict:
+    """Generic 10-edge graph: ranking must not hide the lowest-trust edge."""
+    nodes = [
+        {"id": "drug:pembrolizumab", "type": "Drug", "label": "Keytruda (pembrolizumab)"},
+        {"id": "gene:PDCD1", "type": "Gene", "label": "PDCD1"},
+        {
+            "id": "condition:non_small_cell_lung_cancer",
+            "type": "Condition",
+            "label": "non-small cell lung cancer",
+        },
+        {"id": "ae:hepatitis", "type": "AdverseEventConcept", "label": "hepatitis"},
+        {"id": "ae:pneumonitis", "type": "AdverseEventConcept", "label": "pneumonitis"},
+    ]
+    edges = []
+    for i in range(1, 9):
+        edges.append(
+            {
+                "id": f"edge_{i}",
+                "type": "warns_ae" if i % 2 == 0 else "studied_in",
+                "source": "drug:pembrolizumab",
+                "target": "ae:pneumonitis" if i % 2 == 0 else "condition:non_small_cell_lung_cancer",
+                "trust_score": round(0.95 - (i * 0.04), 4),
+                "sources": ["dailymed_label"] if i % 2 == 0 else ["clinicaltrials_registry"],
+                "evidence_urls": ["https://dailymed.nlm.nih.gov/"] if i % 2 == 0 else [],
+            }
+        )
+    edges.append(
+        {
+            "id": "edge_9",
+            "type": "warns_ae",
+            "source": "drug:pembrolizumab",
+            "target": "ae:hepatitis",
+            "trust_score": 0.11,
+            "sources": ["dailymed_label"],
+            "evidence_urls": ["https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=demo-hep"],
+            "props": {"note": "DailyMed hepatitis warning"},
+        }
+    )
+    edges.append(
+        {
+            "id": "edge_10",
+            "type": "cites",
+            "source": "drug:pembrolizumab",
+            "target": "ae:hepatitis",
+            "trust_score": 0.05,
+            "sources": ["preprint"],
+            "evidence_urls": [],
+            "props": {"note": "lowest-trust filler"},
+        }
+    )
+    return {
+        "goal": "pembrolizumab / Keytruda NSCLC",
+        "nodes": nodes,
+        "edges": edges,
+        "meta": {},
+    }
+
+
 def test_retrieve_prefers_triangle_and_trust():
     g = _mini_graph()
     q = "Does Keytruda (pembrolizumab) target a gene linked to NSCLC?"
@@ -99,6 +158,32 @@ def test_retrieve_keyword_overlap_boosts_ae_question():
     edges = retrieve_edges(q, graph=g, k=2)
     ids = [e["id"] for e in edges]
     assert "edge:reports:pembrolizumab:pneumonitis" in ids
+
+
+
+def test_default_retrieve_returns_every_edge_including_lowest_trust():
+    """Default retrieve is the whole graph, ranked — trust must not drop edges."""
+    g = _ten_edge_graph()
+    assert len(g["edges"]) == 10
+    q = "What does DailyMed warn about hepatitis for Keytruda / pembrolizumab?"
+    defaulted = retrieve_edges(q, graph=g)
+    omitted = retrieve_edges(q, graph=g, k=None)
+    zero = retrieve_edges(q, graph=g, k=0)
+    for edges in (defaulted, omitted, zero):
+        ids = [e["id"] for e in edges]
+        assert len(edges) == 10
+        assert "edge_9" in ids
+        assert "edge_10" in ids
+        trusts = [float(e["trust_score"] or 0) for e in edges]
+        assert min(trusts) == 0.05
+        assert all("retrieval_score" in e for e in edges)
+
+
+def test_explicit_k_caps_when_smaller_than_edge_count():
+    g = _ten_edge_graph()
+    edges = retrieve_edges("Keytruda NSCLC DailyMed hepatitis", graph=g, k=3)
+    assert len(edges) == 3
+    assert all(e.get("id") for e in edges)
 
 
 def test_format_context_includes_urls_and_trust():
@@ -245,7 +330,7 @@ def test_demo_rag_question_is_mixed_graph_and_keynote_888():
 
 
 def test_get_rag_uses_default_question(monkeypatch):
-    """GET /rag (no query) uses DEMO_RAG_QUESTION, k=8, strict=true."""
+    """GET /rag (no query) uses DEMO_RAG_QUESTION, k=None (all edges), strict=true."""
     from fastapi.testclient import TestClient
 
     from living_evidence_graph.config import DEMO_RAG_QUESTION
@@ -253,7 +338,7 @@ def test_get_rag_uses_default_question(monkeypatch):
 
     captured: dict = {}
 
-    def _fake(question, k=8, strict=False, graph_slug=None):
+    def _fake(question, k=None, strict=False, graph_slug=None):
         captured["question"] = question
         captured["k"] = k
         captured["strict"] = strict
@@ -280,7 +365,7 @@ def test_get_rag_uses_default_question(monkeypatch):
     r = client.get("/rag")
     assert r.status_code == 200
     assert captured["question"] == DEMO_RAG_QUESTION
-    assert captured["k"] == 8
+    assert captured["k"] is None
     assert captured["strict"] is True
     body = r.json()
     assert body["question"] == DEMO_RAG_QUESTION

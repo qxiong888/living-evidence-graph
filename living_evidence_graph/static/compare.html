@@ -116,7 +116,7 @@ async function run() {
       method: "POST",
       headers: {"content-type": "application/json"},
       credentials: "same-origin",
-      body: JSON.stringify({question: question, k: 8, strict: true}),
+      body: JSON.stringify({question: question, strict: true}),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.detail || r.status);

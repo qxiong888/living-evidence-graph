@@ -311,10 +311,16 @@ def retrieve_edges(
     question: str,
     *,
     graph: dict[str, Any] | None = None,
-    k: int = 8,
+    k: int | None = None,
     path: str | Path | None = None,
 ) -> list[dict[str, Any]]:
-    """Return top-k edges ranked for the question (compact dicts, no invented IDs)."""
+    """Return ranked edges for the question (compact dicts, no invented IDs).
+
+    Default (k is None / omitted / 0): every edge in the loaded graph, ranked
+    only. Trust and retrieval score never drop an edge on that path, and the
+    per-type diversity cap is not applied. An explicit k is an optional cap
+    used only when k < edge_count (bounded, e.g. le=200, for tests).
+    """
     doc = graph if graph is not None else load_rag_graph(path)
     nodes_by_id = _node_index(list(doc.get("nodes") or []))
     query_tokens = _expand_query_tokens(question)
@@ -326,7 +332,25 @@ def retrieve_edges(
         compact = _compact_edge(edge, nodes_by_id, retrieval_score=s)
         scored.append((s, compact))
     scored.sort(key=lambda t: (-t[0], -(t[1].get("trust_score") or 0.0), t[1].get("id") or ""))
-    k = max(1, min(int(k or 8), 25))
+    edge_count = len(scored)
+    if edge_count == 0:
+        return []
+
+    # Default / omitted / 0 → whole graph. Explicit k is a cap only when smaller.
+    want_all = k is None
+    if not want_all:
+        try:
+            k_int = int(k)
+        except (TypeError, ValueError):
+            k_int = 0
+        if k_int <= 0:
+            want_all = True
+        else:
+            k = min(k_int, 200)
+            if k >= edge_count:
+                want_all = True
+    if want_all:
+        return [compact for _, compact in scored]
 
     intent_types: set[str] = set()
     for tok in query_tokens:
@@ -515,12 +539,12 @@ def answer_bare(question: str) -> dict[str, Any]:
 def answer_with_graph(
     question: str,
     *,
-    k: int = 8,
+    k: int | None = None,
     graph: dict[str, Any] | None = None,
     path: str | Path | None = None,
     edges: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Retrieve top-k edges and answer with Gemini using only that context."""
+    """Retrieve ranked graph edges (all by default) and answer with Gemini from that context."""
     doc = graph if graph is not None else load_rag_graph(path)
     retrieved = edges if edges is not None else retrieve_edges(question, graph=doc, k=k)
     context = format_context(retrieved)
@@ -542,7 +566,7 @@ def answer_with_graph(
 def answer_strict(
     question: str,
     *,
-    k: int = 8,
+    k: int | None = None,
     graph: dict[str, Any] | None = None,
     path: str | Path | None = None,
     edges: list[dict[str, Any]] | None = None,
@@ -594,7 +618,7 @@ def answer_strict(
 def rag_compare(
     question: str,
     *,
-    k: int = 8,
+    k: int | None = None,
     path: str | Path | None = None,
     strict: bool = False,
     graph_slug: str | None = None,

@@ -17,7 +17,7 @@ def _clean_sessions():
     reset_sessions()
 
 
-def _fake_rag(question, k=8, strict=False, graph_slug=None):
+def _fake_rag(question, k=None, strict=False, graph_slug=None):
     return {
         "question": question,
         "retrieved_edges": [
@@ -109,7 +109,7 @@ def test_get_session_unbound():
 def test_rag_uses_bound_session_slug_from_cookie(monkeypatch):
     captured: dict = {}
 
-    def _fake(question, k=8, strict=False, graph_slug=None):
+    def _fake(question, k=None, strict=False, graph_slug=None):
         captured["question"] = question
         captured["k"] = k
         captured["strict"] = strict
@@ -134,7 +134,7 @@ def test_rag_uses_bound_session_slug_from_cookie(monkeypatch):
 def test_rag_honors_query_session_id(monkeypatch):
     captured: dict = {}
 
-    def _fake(question, k=8, strict=False, graph_slug=None):
+    def _fake(question, k=None, strict=False, graph_slug=None):
         captured["graph_slug"] = graph_slug
         return _fake_rag(question, k=k, strict=strict, graph_slug=graph_slug)
 
@@ -155,7 +155,7 @@ def test_rag_honors_query_session_id(monkeypatch):
 def test_post_rag_body_session_id_binds_slug(monkeypatch):
     captured: dict = {}
 
-    def _fake(question, k=8, strict=False, graph_slug=None):
+    def _fake(question, k=None, strict=False, graph_slug=None):
         captured["graph_slug"] = graph_slug
         captured["question"] = question
         return _fake_rag(question, k=k, strict=strict, graph_slug=graph_slug)
@@ -181,7 +181,7 @@ def test_post_rag_body_session_id_binds_slug(monkeypatch):
 def test_explicit_graph_slug_wins_over_session(monkeypatch):
     captured: dict = {}
 
-    def _fake(question, k=8, strict=False, graph_slug=None):
+    def _fake(question, k=None, strict=False, graph_slug=None):
         captured["graph_slug"] = graph_slug
         return _fake_rag(question, k=k, strict=strict, graph_slug=graph_slug)
 

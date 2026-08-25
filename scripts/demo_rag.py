@@ -372,10 +372,12 @@ def _edges_compact(edges: list) -> str:
     if not edges:
         return "<p><em>No edges retrieved.</em></p>"
     rows = []
-    for e in edges[:4]:
+    for e in edges:
         spine = " ★" if e.get("triangle_spine") else ""
+        eid = html.escape(str(e.get("id") or ""))
         rows.append(
             "<tr>"
+            f"<td class='eid'>{eid}</td>"
             f"<td class='etype'>{html.escape(str(e.get('type')))}{spine}</td>"
             f"<td>{html.escape(str(e.get('source_label')))} → "
             f"{html.escape(str(e.get('target_label')))}</td>"
@@ -383,16 +385,12 @@ def _edges_compact(edges: list) -> str:
             f"<td>{html.escape(', '.join(display_source_labels(e.get('sources'), e.get('evidence_urls'))))}</td>"
             "</tr>"
         )
-    more = ""
-    if len(edges) > 4:
-        more = f"<p class='note'>+{len(edges) - 4} more edges in retrieval…</p>"
     return (
         "<table><thead><tr>"
-        "<th>Type</th><th>Edge</th><th>Trust</th><th>Sources</th>"
+        "<th>Id</th><th>Type</th><th>Edge</th><th>Trust</th><th>Sources</th>"
         "</tr></thead><tbody>"
         + "".join(rows)
         + "</tbody></table>"
-        + more
     )
 
 
@@ -526,7 +524,7 @@ def render_html(result: dict) -> str:
   pre.answer {{
     white-space: pre-wrap; word-break: break-word; font-size: 10.5px; line-height: 1.32;
     background: #0a1a2a; padding: 7px; border-radius: 6px; margin: 0;
-    max-height: 318px; overflow: hidden; color: #dce6f2;
+    max-height: 248px; overflow: hidden; color: #dce6f2;
     font-family: ui-monospace, "DejaVu Sans Mono", monospace;
   }}
   mark.uv {{
@@ -606,9 +604,10 @@ def render_html(result: dict) -> str:
     border-radius: 10px; padding: 6px 10px;
   }}
   .edges h3 {{ margin: 0 0 4px; font-size: 12px; color: #ffd666; }}
-  table {{ border-collapse: collapse; width: 100%; font-size: 10.5px; }}
+  table {{ border-collapse: collapse; width: 100%; font-size: 9.5px; }}
   th, td {{ border: 1px solid #2a4a66; padding: 2px 5px; vertical-align: top; }}
   th {{ background: #1a3348; color: #a8d4ff; text-align: left; }}
+  td.eid {{ color: #ffd666; white-space: nowrap; font-weight: 700; }}
   td.etype {{ color: #7dffa8; white-space: nowrap; }}
   td.trust {{ color: #ffd666; font-weight: 700; }}
   .foot {{
@@ -643,7 +642,7 @@ def render_html(result: dict) -> str:
         <h2>Grounded Gemini (cites edges)</h2>
         {_answer_block(
             grounded,
-            emphasize="Only retrieved high-trust edges. Green ✓ = cited edge_id in top-k.",
+            emphasize="Whole living graph, ranked. Green ✓ = cited edge_id.",
             body_html=grounded_html,
         )}
       </div>
@@ -684,7 +683,7 @@ def main() -> int:
     if "--from-json" in sys.argv:
         return render_from_saved()
     DEMO_DIR.mkdir(parents=True, exist_ok=True)
-    result = rag_compare(DEMO_QUESTION, k=8, strict=True)
+    result = rag_compare(DEMO_QUESTION, strict=True)
 
     # Always use unconstrained bare so invented NCT/HR show for contrast.
     print("Replacing careful bare with unconstrained bare…")

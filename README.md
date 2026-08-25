@@ -31,7 +31,7 @@ Text-first **living evidence knowledge graph** so LLMs give **more precise, chec
 1. **You enter a goal** — drug + indication / research question (demo default: Keytruda / pembrolizumab + NSCLC).
 2. **Unattended Taskmaster builds & daily-refreshes the living graph** — Cloud Scheduler → `POST /scheduler` (job `leg-daily-keytruda`); fetches public APIs (or personal/enterprise corpora in private modes), scores credibility, emits change digests — **no human click every day**.
 3. **You ask / automate against the graph and get better LLM results:**
-   - **Grounded answers** (`POST /rag`) — Gemini may only use top-k high-trust edges (demo: bare vs grounded).
+   - **Grounded answers** (`POST /rag`) — Gemini is injected the **whole living graph**, ranked (demo: bare vs grounded). `k` is an optional cap, not the default.
    - **Strict / library-only mode** (`POST /rag` with `"strict": true`) — answers **only** from the living graph’s configured sources (public demo: the 7 APIs) **or** a personal/enterprise private library graph. If nothing relevant is retrieved → reply clearly that **no related information was found** and **do not invent** any other answer (no bare-model freestyle). Not a claim of medical certainty — only from the evidence graph / library; abstain if missing.
    - **Auditable citations** — NCT / PMID / label / KB links on every used edge; FAERS = **reports**, not rates; **not** causation or clinical advice.
    - **Freshness / autonomy** — daily unattended refresh + change digest (**what** / **why** / **sources**) so answers track new public evidence without babysitting.
@@ -161,7 +161,7 @@ living_evidence_graph/
   server.py         # FastAPI (/health /run /scheduler /rag /library/*)
   private_ingest.py # personal/enterprise folder → private living graph
   library_watch.py  # auto-refresh private graphs when the folder changes
-  rag.py            # retrieve top-k edges → bare / grounded / strict Gemini
+  rag.py            # retrieve all ranked edges (optional k cap) → bare / grounded / strict
   extract.py        # triples (Gemini JSON structure when keyed; else rules)
   credibility.py    # pure trust formula
   graph_store.py    # local JSON + Firestore stub
@@ -181,21 +181,21 @@ living_evidence_graph/
 ## RAG retrieval demo (judge beat ~30–40s)
 
 1. Ask a Keytruda / NSCLC question (`GET /rag` in a browser, `POST /rag`, or `scripts/demo_rag.py`).
-2. Retriever ranks edges by **trust_score** + keyword/entity overlap (boosts triangle spine + `evidence_urls`).
+2. Retriever injects the **whole living graph**, ranked by **trust_score** + keyword/entity overlap (boosts triangle spine + `evidence_urls`). Ranking does not hide edges. `k` is an optional cap only when a caller passes it.
 3. Show **bare Gemini** vs **grounded Gemini** (system instruction: cite only provided edges; refuse causation/rates; say when graph lacks evidence).
-4. Optional **strict / library-only**: `"strict": true` returns a third answer that uses **only** retrieved edges (or abstains with a fixed message if retrieval is empty — Gemini is not called).
+4. Optional **strict / library-only**: `"strict": true` returns a third answer that uses **only** those graph edges (or abstains with a fixed message if the graph is empty — Gemini is not called).
 5. Point at `out/demo/rag_compare.html` — retrieval-only, no fine-tuning, no abstract dumps into training.
 
 ```bash
-# Browser / GET (default mixed question, strict=true)
+# Browser / GET (default mixed question, all ranked edges, strict=true)
 curl -s localhost:8080/rag
 
 curl -s localhost:8080/rag -H 'content-type: application/json' \
-  -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?","k":8}'
+  -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?"}'
 
 # Strict / library-only (bare + grounded + strict for contrast)
 curl -s localhost:8080/rag -H 'content-type: application/json' \
-  -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?","k":8,"strict":true}'
+  -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?","strict":true}'
 ```
 
 
@@ -234,7 +234,7 @@ curl -s localhost:8080/library/my-lib
 
 # Strict answers only from that private graph (abstain if empty / no hits)
 curl -s localhost:8080/rag -H 'content-type: application/json' \
-  -d '{"question":"What does my library say about PDCD1?","k":8,"strict":true,"library_slug":"my-lib"}'
+  -d '{"question":"What does my library say about PDCD1?","strict":true,"library_slug":"my-lib"}'
 ```
 
 Private edges cite **file paths only** (no fake PMIDs/NCTs). Not a medical product; not medical certainty.
@@ -260,7 +260,7 @@ Public service (min-instances 0, `us-central1`):
 # https://living-evidence-graph-892760629727.us-central1.run.app/compare
 # https://living-evidence-graph-892760629727.us-central1.run.app/update
 
-# Browser-openable RAG (default mixed question, k=8, strict=true)
+# Browser-openable RAG (default mixed question, all ranked edges, strict=true)
 # https://living-evidence-graph-892760629727.us-central1.run.app/rag
 curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/rag
 
@@ -270,15 +270,15 @@ curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/health
 # Demo graph (baked 14 nodes / 10 edges on cold start)
 curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/graph
 
-# Bare vs grounded (Keytruda / NSCLC demo graph already on the service)
+# Bare vs grounded (Keytruda / NSCLC demo graph already on the service; whole graph injected)
 curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/rag \
   -H 'content-type: application/json' \
-  -d '{"question":"What NSCLC indication and PDCD1 target does the graph list for Keytruda (pembrolizumab), what does DailyMed warn about pneumonitis and hepatitis, and what is KEYNOTE-799 (NCT03631784) in Stage III? What is the OS hazard ratio for KEYNOTE-888?","k":8}'
+  -d '{"question":"What NSCLC indication and PDCD1 target does the graph list for Keytruda (pembrolizumab), what does DailyMed warn about pneumonitis and hepatitis, and what is KEYNOTE-799 (NCT03631784) in Stage III? What is the OS hazard ratio for KEYNOTE-888?"}'
 
-# Strict (abstain if empty)
+# Strict (graph-only; abstain if empty)
 curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/rag \
   -H 'content-type: application/json' \
-  -d '{"question":"What NSCLC indication and PDCD1 target does the graph list for Keytruda (pembrolizumab), what does DailyMed warn about pneumonitis and hepatitis, and what is KEYNOTE-799 (NCT03631784) in Stage III? What is the OS hazard ratio for KEYNOTE-888?","k":8,"strict":true}'
+  -d '{"question":"What NSCLC indication and PDCD1 target does the graph list for Keytruda (pembrolizumab), what does DailyMed warn about pneumonitis and hepatitis, and what is KEYNOTE-799 (NCT03631784) in Stage III? What is the OS hazard ratio for KEYNOTE-888?","strict":true}'
 ```
 
 Local twin: `python -m scripts.demo_rag` → `out/demo/rag_compare.html` (and live pages B/C: `graph_update_before_after.html`, `llm_imports_graph.html`).

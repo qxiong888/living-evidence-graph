@@ -62,8 +62,8 @@ app = FastAPI(
         "Public data only — not a medical product. "
         "GET / = demo hub (compare / update / push). "
         "GET /graph = demo graph node/edge counts (seeded 14/10 on cold start). "
-        "GET /rag = same JSON in a browser (default demo question, strict=true). "
-        "POST /rag = retrieval-augmented answer (question required; graph edges only). "
+        "GET /rag = same JSON in a browser (default demo question, all ranked edges, strict=true). "
+        "POST /rag = retrieval-augmented answer (question required; whole graph by default). "
         "POST /session/push = bind this demo session to the latest public graph. "
         "GET /changes = human-readable change digest (what / why / sources). "
         "POST /library/ingest = personal/enterprise private folder → private graph "
@@ -83,7 +83,12 @@ class RagBody(BaseModel):
         ...,
         description="User question answered bare vs grounded (and optional strict) on retrieved graph edges",
     )
-    k: int = Field(default=8, ge=1, le=25, description="Top-k edges to retrieve")
+    k: int | None = Field(
+        default=None,
+        ge=0,
+        le=200,
+        description="Optional cap on ranked edges. Default/None/0 = every edge in the loaded graph.",
+    )
     strict: bool = Field(
         default=False,
         description=(
@@ -443,7 +448,7 @@ def session_get(
 def _rag_payload(
     *,
     question: str,
-    k: int,
+    k: int | None,
     strict: bool,
     graph_slug: str | None,
     library_slug: str | None,
@@ -486,7 +491,7 @@ def rag_post(
         description="Optional demo session id (cookie session_id also honored)",
     ),
 ) -> JSONResponse:
-    """Retrieve high-trust graph edges; bare vs grounded (+ optional strict) Gemini."""
+    """Retrieve ranked graph edges (all by default); bare vs grounded (+ optional strict)."""
     slug, sid = _resolve_rag_slug(
         request,
         graph_slug=body.graph_slug,
@@ -512,7 +517,12 @@ def rag_get(
         default=None,
         description="Optional; defaults to DEMO_RAG_QUESTION (compare-page mixed question)",
     ),
-    k: int = Query(default=8, ge=1, le=25, description="Top-k edges to retrieve"),
+    k: int | None = Query(
+        default=None,
+        ge=0,
+        le=200,
+        description="Optional cap; default/None/0 = every ranked edge in the loaded graph",
+    ),
     strict: bool = Query(
         default=True,
         description="Default true so a browser shows graph-backed clauses + KEYNOTE-888 abstain",
