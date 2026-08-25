@@ -39,7 +39,13 @@ _ASSET_TYPES = {
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Seed the public demo graph, then watch existing private folders."""
+    """Seed the public demo graph, then watch existing *private* folders.
+
+    Only private_*.manifest.json whose watched_path is a real directory get a
+    watcher. The public Keytruda slug (pembrolizumab_non_small_cell_lung_cancer)
+    is never watched — that graph is public APIs only, not a local directory.
+    Cloud Run has no user folders, so this is a no-op there.
+    """
     seed_demo_graph_if_missing()
     start_watchers_from_manifests()
     try:

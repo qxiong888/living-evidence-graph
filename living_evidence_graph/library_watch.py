@@ -13,6 +13,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from living_evidence_graph.config import DEMO_GRAPH_SLUG
 from living_evidence_graph.private_ingest import (
     library_needs_refresh,
     load_manifest,
@@ -110,11 +111,14 @@ def is_watching(library_slug: str) -> bool:
 
 def start_watcher(library_slug: str, watched_path: str | Path | None = None) -> bool:
     """Start or replace a folder watcher. False if path is missing (Cloud Run)."""
-    slug = resolve_private_slug(library_slug)
+    raw = (library_slug or "").strip()
+    # Public Keytruda/NSCLC graph is API-only — never attach a local-dir watcher.
+    if not raw or raw == DEMO_GRAPH_SLUG or raw.startswith(f"{DEMO_GRAPH_SLUG}."):
+        return False
+    slug = resolve_private_slug(raw)
     if slug is None:
-        raw = (library_slug or "").strip()
         slug = raw if raw.startswith("private_") else None
-    if not slug:
+    if not slug or slug == DEMO_GRAPH_SLUG:
         return False
     path: Path | None = None
     if watched_path:
@@ -165,6 +169,8 @@ def start_watchers_from_manifests() -> list[str]:
         if not name.endswith(".manifest.json"):
             continue
         slug = name[: -len(".manifest.json")]
+        if slug == DEMO_GRAPH_SLUG or not slug.startswith("private_"):
+            continue
         if start_watcher(slug):
             started.append(slug)
     return started

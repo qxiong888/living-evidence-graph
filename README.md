@@ -207,7 +207,7 @@ Supported files (MVP): `.txt` `.md` `.html` `.csv` `.json` `.pdf` (via pypdf). L
 
 **First ingest registers the folder.** After that, while **uvicorn** (or the CLI `--watch` process) is running, add / edit / delete of supported files **auto-rebuilds** the private graph — you do not re-run ingest by hand. Debounced (~1s) so a burst of writes is one refresh.
 
-The **Cloud Run public demo has no user folders.** Watchers start only when `watched_path` is a real directory on the machine; on Cloud Run they no-op. The public Keytruda graph stays the baked 14/10 demo and is never mixed with private libraries.
+The **public** Keytruda/NSCLC graph watches **public API sources only** — it has nothing to do with local directories. Auto-watch is **private libraries only** and never attaches to `pembrolizumab_non_small_cell_lung_cancer`. The **Cloud Run public demo has no user folders**; watchers start only when `watched_path` is a real directory on the machine, so they no-op there. The baked 14/10 public demo is never mixed with private libraries.
 
 **CLI:**
 ```bash

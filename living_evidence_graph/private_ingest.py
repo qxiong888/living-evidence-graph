@@ -847,34 +847,20 @@ def main(argv: list[str] | None = None) -> int:
     if not args.watch:
         return 0
 
-    from living_evidence_graph.library_watch import start_watcher, stop_watcher
-
     slug = result["library_slug"]
-    started = start_watcher(slug, result.get("watched_path"))
-    result["auto_refresh"] = started
-    result["watching"] = started
-    if not started:
-        print(
-            json.dumps(
-                {
-                    "status": "error",
-                    "error": "could not start watcher (watched_path missing?)",
-                    "library_slug": slug,
-                }
-            ),
-            file=sys.stderr,
-        )
-        return 1
     print(
         f"Watching {result.get('watched_path')} for {slug}. "
-        "File changes auto-refresh the private graph. Ctrl-C to stop.",
+        "File changes auto-refresh the private graph via refresh_if_stale. "
+        "Ctrl-C to stop.",
         file=sys.stderr,
     )
     try:
         while True:
-            time.sleep(0.5)
+            time.sleep(1.0)  # debounce ~1s; one refresh_if_stale at a time (lock)
+            out = refresh_if_stale(slug)
+            if out.get("refreshed"):
+                print(json.dumps(out, indent=2))
     except KeyboardInterrupt:
-        stop_watcher(slug)
         print(json.dumps({"status": "stopped", "library_slug": slug}))
         return 0
 

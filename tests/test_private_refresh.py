@@ -254,3 +254,51 @@ def test_http_ingest_starts_watcher_and_library_get_reports(tmp_path, monkeypatc
             assert js["public_demo_mixed"] is False
     finally:
         stop_all_watchers()
+
+
+
+def test_never_watch_public_demo_slug(tmp_path, monkeypatch):
+    """Public Keytruda slug is API-only — no local-dir watcher, even if a folder exists."""
+    from living_evidence_graph.library_watch import (
+        is_watching,
+        start_watcher,
+        start_watchers_from_manifests,
+        stop_all_watchers,
+    )
+
+    gdir = _patch_graph_dirs(tmp_path, monkeypatch)
+    decoy = tmp_path / "decoy-public-dir"
+    decoy.mkdir()
+    (decoy / "note.md").write_text("# Decoy\n\nShould not become the public graph.\n", encoding="utf-8")
+
+    # Fake a public-demo manifest pointing at a real directory.
+    public_manifest = {
+        "library_slug": DEMO_GRAPH_SLUG,
+        "watched_path": str(decoy),
+        "files": [],
+    }
+    (gdir / f"{DEMO_GRAPH_SLUG}.manifest.json").write_text(
+        json.dumps(public_manifest), encoding="utf-8"
+    )
+    # And a private library that SHOULD be watchable.
+    lib = tmp_path / "lib-ok"
+    lib.mkdir()
+    (lib / "ok.md").write_text("# OK\n\npembrolizumab.\n", encoding="utf-8")
+    pi.ingest_directory(lib, slug="ok-lib", mode="personal")
+
+    try:
+        assert start_watcher(DEMO_GRAPH_SLUG, decoy) is False
+        assert is_watching(DEMO_GRAPH_SLUG) is False
+        started = start_watchers_from_manifests()
+        assert DEMO_GRAPH_SLUG not in started
+        assert all(s.startswith("private_") for s in started)
+        assert "private_ok_lib" in started
+        assert is_watching("ok-lib") is True
+        assert is_watching(DEMO_GRAPH_SLUG) is False
+    finally:
+        stop_all_watchers()
+
+    assert pi.library_needs_refresh(DEMO_GRAPH_SLUG) is False
+    skipped = pi.refresh_if_stale(DEMO_GRAPH_SLUG)
+    assert skipped["refreshed"] is False
+    assert skipped["status"] == "skipped"
