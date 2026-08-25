@@ -21,7 +21,7 @@
   <p class="sub">KEYNOTE-888 is not in the graph. Bare may invent; grounded cites openable edge IDs; strict leaves that clause empty. Not who writes better — who does not invent what the graph lacks. Page chrome does not add trial or paper IDs.</p>
   <div id="question" class="question">Loading question…</div>
   <button type="button" id="run">Run live compare</button>
-  <p class="status" id="status"></p>
+  <p class="status" id="status">Click Run live compare — about 20 seconds.</p>
   <div class="cols-3">
     <div class="panel">
       <div class="label bare">Bare</div>
@@ -142,7 +142,7 @@ async function run() {
 }
 
 document.getElementById("run").addEventListener("click", run);
-boot().then(run);
+boot();
 </script>
 </body>
 </html>
