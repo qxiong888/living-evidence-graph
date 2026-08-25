@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from living_evidence_graph.rag import (
     DISCLAIMER,
+    K_UNSET,
     STRICT_ABSTAIN_MESSAGE,
     answer_strict,
     format_context,
+    graph_mode,
     retrieve_edges,
     score_edge_for_question,
 )
@@ -139,6 +141,31 @@ def _ten_edge_graph() -> dict:
     }
 
 
+
+def _n_edge_graph(n: int, *, mode: str = "public") -> dict:
+    nodes = [
+        {"id": "drug:pembrolizumab", "type": "Drug", "label": "Keytruda (pembrolizumab)"},
+        {"id": "gene:PDCD1", "type": "Gene", "label": "PDCD1"},
+    ]
+    edges = []
+    for i in range(1, n + 1):
+        edges.append(
+            {
+                "id": f"edge_{i}",
+                "type": "cites",
+                "source": "drug:pembrolizumab",
+                "target": "gene:PDCD1",
+                "trust_score": round(max(0.01, 0.99 - i * 0.005), 4),
+                "sources": ["private_library", mode] if mode != "public" else ["opentargets_kb"],
+                "evidence_urls": [],
+            }
+        )
+    meta: dict = {}
+    if mode != "public":
+        meta = {"mode": mode, "library": True, "source_boundary": "private"}
+    return {"goal": f"{mode} graph", "nodes": nodes, "edges": edges, "meta": meta}
+
+
 def test_retrieve_prefers_triangle_and_trust():
     g = _mini_graph()
     q = "Does Keytruda (pembrolizumab) target a gene linked to NSCLC?"
@@ -184,6 +211,57 @@ def test_explicit_k_caps_when_smaller_than_edge_count():
     edges = retrieve_edges("Keytruda NSCLC DailyMed hepatitis", graph=g, k=3)
     assert len(edges) == 3
     assert all(e.get("id") for e in edges)
+
+
+
+def test_public_default_is_all_ranked_edges():
+    g = _ten_edge_graph()
+    assert graph_mode(g) == "public"
+    q = "Keytruda DailyMed hepatitis"
+    assert len(retrieve_edges(q, graph=g)) == 10
+    assert len(retrieve_edges(q, graph=g, k=K_UNSET)) == 10
+
+
+def test_personal_default_k_is_32():
+    g = _n_edge_graph(40, mode="personal")
+    assert graph_mode(g) == "personal"
+    q = "What does my library say about pembrolizumab?"
+    defaulted = retrieve_edges(q, graph=g)
+    assert len(defaulted) == 32
+    assert len(retrieve_edges(q, graph=g, k=None)) == 40
+    assert len(retrieve_edges(q, graph=g, k=0)) == 40
+    assert len(retrieve_edges(q, graph=g, k="all")) == 40
+
+
+def test_enterprise_default_k_is_128():
+    g = _n_edge_graph(140, mode="enterprise")
+    assert graph_mode(g) == "enterprise"
+    q = "What does the vault say about pembrolizumab?"
+    defaulted = retrieve_edges(q, graph=g)
+    assert len(defaulted) == 128
+    assert len(retrieve_edges(q, graph=g, k=0)) == 140
+    assert len(retrieve_edges(q, graph=g, k="all")) == 140
+
+
+def test_graph_smaller_than_k_injects_all_never_invents():
+    personal = _n_edge_graph(10, mode="personal")
+    enterprise = _n_edge_graph(10, mode="enterprise")
+    public = _n_edge_graph(10, mode="public")
+    q = "pembrolizumab"
+    for g in (personal, enterprise, public):
+        edges = retrieve_edges(q, graph=g, k=32)
+        assert len(edges) == 10
+        assert all(e.get("id") for e in edges)
+    assert len(retrieve_edges(q, graph=personal)) == 10  # default 32 > 10
+    assert len(retrieve_edges(q, graph=enterprise)) == 10  # default 128 > 10
+
+
+def test_public_opt_in_without_number_is_32():
+    g = _n_edge_graph(40, mode="public")
+    q = "pembrolizumab"
+    assert len(retrieve_edges(q, graph=g, k=True)) == 32
+    assert len(retrieve_edges(q, graph=g, k="")) == 32
+    assert len(retrieve_edges(q, graph=g, k="default")) == 32
 
 
 def test_format_context_includes_urls_and_trust():
@@ -330,7 +408,7 @@ def test_demo_rag_question_is_mixed_graph_and_keynote_888():
 
 
 def test_get_rag_uses_default_question(monkeypatch):
-    """GET /rag (no query) uses DEMO_RAG_QUESTION, k=None (all edges), strict=true."""
+    """GET /rag (no query) uses DEMO_RAG_QUESTION, omitted k (public=all), strict=true."""
     from fastapi.testclient import TestClient
 
     from living_evidence_graph.config import DEMO_RAG_QUESTION
@@ -343,6 +421,8 @@ def test_get_rag_uses_default_question(monkeypatch):
         captured["k"] = k
         captured["strict"] = strict
         captured["graph_slug"] = graph_slug
+        if k is K_UNSET:
+            k = None
         return {
             "question": question,
             "retrieved_edges": [{"id": "edge:indicated:pembrolizumab:nsclc", "type": "drug_indicated_for_disease"}],
@@ -365,7 +445,8 @@ def test_get_rag_uses_default_question(monkeypatch):
     r = client.get("/rag")
     assert r.status_code == 200
     assert captured["question"] == DEMO_RAG_QUESTION
-    assert captured["k"] is None
+    assert captured["k"] is K_UNSET
+    assert captured["k"] != 8
     assert captured["strict"] is True
     body = r.json()
     assert body["question"] == DEMO_RAG_QUESTION

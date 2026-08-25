@@ -29,6 +29,91 @@ DISCLAIMER = (
     "LLM path is retrieval-only over the graph (no abstract/full-text training dumps)."
 )
 
+# k policy (locked): omitted k uses graph mode. Explicit 0 / "all" / None = full graph.
+# Public opt-in without a number = 32. Never invent edges to fill k.
+K_UNSET: object = object()
+K_MAX = 200
+PUBLIC_OPT_IN_K = 32
+MODE_DEFAULT_K: dict[str, int | None] = {
+    "public": None,  # all ranked edges
+    "personal": 32,
+    "enterprise": 128,
+}
+
+
+def graph_mode(graph: dict[str, Any] | None, graph_slug: str | None = None) -> str:
+    """public | personal | enterprise from graph meta / slug."""
+    meta = (graph or {}).get("meta") or {}
+    raw = str(meta.get("mode") or "").strip().lower()
+    if raw in {"personal", "enterprise", "public"}:
+        return raw
+    slug = str(
+        graph_slug
+        or meta.get("graph_slug")
+        or meta.get("library_slug")
+        or ""
+    ).strip()
+    if (
+        slug.startswith("private_")
+        or meta.get("library")
+        or str(meta.get("source_boundary") or "") == "private"
+    ):
+        return "personal"
+    return "public"
+
+
+def _wants_all(k: Any) -> bool:
+    if k is None:
+        return True
+    if isinstance(k, bool):
+        return False
+    if isinstance(k, int) and k <= 0:
+        return True
+    if isinstance(k, str) and k.strip().lower() in {"all", "none", "full", "0"}:
+        return True
+    return False
+
+
+def _opt_in_without_number(k: Any) -> bool:
+    if k is True:
+        return True
+    if isinstance(k, str) and k.strip().lower() in {"", "default", "k"}:
+        return True
+    return False
+
+
+def resolve_k(k: Any, *, mode: str, edge_count: int) -> int | None:
+    """Return a cap, or None for the full ranked graph.
+
+    None means inject every edge. If the graph is smaller than k, return None
+    (all edges) — never invent edges to fill the cap.
+    """
+    if k is K_UNSET:
+        k = MODE_DEFAULT_K.get(mode, None)
+        if k is None:
+            return None
+    elif _wants_all(k):
+        return None
+    elif _opt_in_without_number(k):
+        k = PUBLIC_OPT_IN_K
+    else:
+        try:
+            k_int = int(k)
+        except (TypeError, ValueError):
+            k = MODE_DEFAULT_K.get(mode, None)
+            if k is None:
+                return None
+        else:
+            if k_int <= 0:
+                return None
+            k = min(k_int, K_MAX)
+    if k is None:
+        return None
+    if int(k) >= int(edge_count):
+        return None
+    return int(k)
+
+
 SYSTEM_GROUNDED = (
     "You answer using ONLY the provided living-evidence-graph edges. "
     "Cite edges by their edge id or type + endpoints. "
@@ -311,17 +396,18 @@ def retrieve_edges(
     question: str,
     *,
     graph: dict[str, Any] | None = None,
-    k: int | None = None,
+    k: Any = K_UNSET,
     path: str | Path | None = None,
+    graph_slug: str | None = None,
 ) -> list[dict[str, Any]]:
     """Return ranked edges for the question (compact dicts, no invented IDs).
 
-    Default (k is None / omitted / 0): every edge in the loaded graph, ranked
-    only. Trust and retrieval score never drop an edge on that path, and the
-    per-type diversity cap is not applied. An explicit k is an optional cap
-    used only when k < edge_count (bounded, e.g. le=200, for tests).
+    Omitted k (K_UNSET) uses graph mode: public = all, personal = 32,
+    enterprise = 128. Explicit k=None / 0 / "all" = full graph. Public
+    opt-in without a number = 32. If the graph is smaller than k, inject
+    every edge. Full-graph path does not apply the per-type diversity cap.
     """
-    doc = graph if graph is not None else load_rag_graph(path)
+    doc = graph if graph is not None else load_rag_graph(path, graph_slug=graph_slug)
     nodes_by_id = _node_index(list(doc.get("nodes") or []))
     query_tokens = _expand_query_tokens(question)
     scored: list[tuple[float, dict[str, Any]]] = []
@@ -336,21 +422,11 @@ def retrieve_edges(
     if edge_count == 0:
         return []
 
-    # Default / omitted / 0 → whole graph. Explicit k is a cap only when smaller.
-    want_all = k is None
-    if not want_all:
-        try:
-            k_int = int(k)
-        except (TypeError, ValueError):
-            k_int = 0
-        if k_int <= 0:
-            want_all = True
-        else:
-            k = min(k_int, 200)
-            if k >= edge_count:
-                want_all = True
-    if want_all:
+    mode = graph_mode(doc, graph_slug)
+    cap = resolve_k(k, mode=mode, edge_count=edge_count)
+    if cap is None:
         return [compact for _, compact in scored]
+    k = cap
 
     intent_types: set[str] = set()
     for tok in query_tokens:
@@ -539,12 +615,12 @@ def answer_bare(question: str) -> dict[str, Any]:
 def answer_with_graph(
     question: str,
     *,
-    k: int | None = None,
+    k: Any = K_UNSET,
     graph: dict[str, Any] | None = None,
     path: str | Path | None = None,
     edges: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    """Retrieve ranked graph edges (all by default) and answer with Gemini from that context."""
+    """Retrieve ranked graph edges (mode default) and answer with Gemini from that context."""
     doc = graph if graph is not None else load_rag_graph(path)
     retrieved = edges if edges is not None else retrieve_edges(question, graph=doc, k=k)
     context = format_context(retrieved)
@@ -566,7 +642,7 @@ def answer_with_graph(
 def answer_strict(
     question: str,
     *,
-    k: int | None = None,
+    k: Any = K_UNSET,
     graph: dict[str, Any] | None = None,
     path: str | Path | None = None,
     edges: list[dict[str, Any]] | None = None,
@@ -618,7 +694,7 @@ def answer_strict(
 def rag_compare(
     question: str,
     *,
-    k: int | None = None,
+    k: Any = K_UNSET,
     path: str | Path | None = None,
     strict: bool = False,
     graph_slug: str | None = None,
@@ -629,12 +705,15 @@ def rag_compare(
     public demo graph (never mixed with private folder docs).
     """
     doc = load_rag_graph(path, graph_slug=graph_slug)
-    retrieved = retrieve_edges(question, graph=doc, k=k)
+    mode = graph_mode(doc, graph_slug)
+    retrieved = retrieve_edges(question, graph=doc, k=k, graph_slug=graph_slug)
+    resolved = resolve_k(k, mode=mode, edge_count=len(list(doc.get("edges") or [])))
     grounded = answer_with_graph(question, k=k, graph=doc, edges=retrieved)
     bare = answer_bare(question)
     out: dict[str, Any] = {
         "question": question,
-        "k": k,
+        "k": resolved,
+        "graph_mode": mode,
         "graph_path": (doc.get("meta") or {}).get("rag_graph_path"),
         "graph_slug": graph_slug or (doc.get("meta") or {}).get("library_slug"),
         "goal": doc.get("goal"),

@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from living_evidence_graph.config import DEMO_GRAPH_SLUG, DEMO_RAG_QUESTION
+from living_evidence_graph.rag import K_UNSET
 from living_evidence_graph.server import app
 from living_evidence_graph.session_store import reset_sessions
 
@@ -18,6 +19,8 @@ def _clean_sessions():
 
 
 def _fake_rag(question, k=None, strict=False, graph_slug=None):
+    if k is K_UNSET:
+        k = None
     return {
         "question": question,
         "retrieved_edges": [

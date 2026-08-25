@@ -20,7 +20,7 @@ from living_evidence_graph.library_watch import (
     stop_all_watchers,
 )
 from living_evidence_graph.private_ingest import ingest_directory, library_status
-from living_evidence_graph.rag import DISCLAIMER, rag_compare
+from living_evidence_graph.rag import DISCLAIMER, K_UNSET, rag_compare
 from living_evidence_graph.seed import seed_demo_graph_if_missing
 from living_evidence_graph.session_store import create_session, get_session
 
@@ -83,11 +83,12 @@ class RagBody(BaseModel):
         ...,
         description="User question answered bare vs grounded (and optional strict) on retrieved graph edges",
     )
-    k: int | None = Field(
+    k: int | str | bool | None = Field(
         default=None,
-        ge=0,
-        le=200,
-        description="Optional cap on ranked edges. Default/None/0 = every edge in the loaded graph.",
+        description=(
+            "Optional cap. Omitted = mode default (public=all, personal=32, "
+            "enterprise=128). 0 / all / null = full graph. true / empty = 32."
+        ),
     )
     strict: bool = Field(
         default=False,
@@ -448,7 +449,7 @@ def session_get(
 def _rag_payload(
     *,
     question: str,
-    k: int | None,
+    k,
     strict: bool,
     graph_slug: str | None,
     library_slug: str | None,
@@ -498,10 +499,11 @@ def rag_post(
         library_slug=body.library_slug,
         session_id=body.session_id or session_id,
     )
+    k_arg = K_UNSET if "k" not in body.model_fields_set else body.k
     return JSONResponse(
         _rag_payload(
             question=body.question,
-            k=body.k,
+            k=k_arg,
             strict=bool(body.strict),
             graph_slug=slug,
             library_slug=None,
@@ -517,11 +519,12 @@ def rag_get(
         default=None,
         description="Optional; defaults to DEMO_RAG_QUESTION (compare-page mixed question)",
     ),
-    k: int | None = Query(
+    k: str | None = Query(
         default=None,
-        ge=0,
-        le=200,
-        description="Optional cap; default/None/0 = every ranked edge in the loaded graph",
+        description=(
+            "Optional cap. Omitted = mode default (public=all, personal=32, "
+            "enterprise=128). 0/all = full graph."
+        ),
     ),
     strict: bool = Query(
         default=True,
@@ -548,10 +551,11 @@ def rag_get(
         library_slug=library_slug,
         session_id=session_id,
     )
+    k_arg = K_UNSET if "k" not in request.query_params else k
     return JSONResponse(
         _rag_payload(
             question=q,
-            k=k,
+            k=k_arg,
             strict=bool(strict),
             graph_slug=slug,
             library_slug=None,

@@ -31,7 +31,7 @@ Text-first **living evidence knowledge graph** so LLMs give **more precise, chec
 1. **You enter a goal** — drug + indication / research question (demo default: Keytruda / pembrolizumab + NSCLC).
 2. **Unattended Taskmaster builds & daily-refreshes the living graph** — Cloud Scheduler → `POST /scheduler` (job `leg-daily-keytruda`); fetches public APIs (or personal/enterprise corpora in private modes), scores credibility, emits change digests — **no human click every day**.
 3. **You ask / automate against the graph and get better LLM results:**
-   - **Grounded answers** (`POST /rag`) — Gemini is injected the **whole living graph**, ranked (demo: bare vs grounded). `k` is an optional cap, not the default.
+   - **Grounded answers** (`POST /rag`) — public graphs inject the **whole living graph**, ranked (demo Keytruda/NSCLC = all 10). Personal libraries default `k=32`; enterprise default `k=128`. `k` is optional; `0` / `all` / `null` = full graph. Never invent edges if the graph is smaller than `k`.
    - **Strict / library-only mode** (`POST /rag` with `"strict": true`) — answers **only** from the living graph’s configured sources (public demo: the 7 APIs) **or** a personal/enterprise private library graph. If nothing relevant is retrieved → reply clearly that **no related information was found** and **do not invent** any other answer (no bare-model freestyle). Not a claim of medical certainty — only from the evidence graph / library; abstain if missing.
    - **Auditable citations** — NCT / PMID / label / KB links on every used edge; FAERS = **reports**, not rates; **not** causation or clinical advice.
    - **Freshness / autonomy** — daily unattended refresh + change digest (**what** / **why** / **sources**) so answers track new public evidence without babysitting.
@@ -181,7 +181,7 @@ living_evidence_graph/
 ## RAG retrieval demo (judge beat ~30–40s)
 
 1. Ask a Keytruda / NSCLC question (`GET /rag` in a browser, `POST /rag`, or `scripts/demo_rag.py`).
-2. Retriever injects the **whole living graph**, ranked by **trust_score** + keyword/entity overlap (boosts triangle spine + `evidence_urls`). Ranking does not hide edges. `k` is an optional cap only when a caller passes it.
+2. Retriever ranks edges by **trust_score** + keyword/entity overlap (boosts triangle spine + `evidence_urls`). **Public** default = every edge. **Personal** default `k=32`. **Enterprise** default `k=128`. Ranking does not hide edges on the public full-graph path. Optional `k`; if a public caller opts into `k` without a number, `k=32`. `0` / `all` / `null` = full graph. Graph smaller than `k` still injects all edges.
 3. Show **bare Gemini** vs **grounded Gemini** (system instruction: cite only provided edges; refuse causation/rates; say when graph lacks evidence).
 4. Optional **strict / library-only**: `"strict": true` returns a third answer that uses **only** those graph edges (or abstains with a fixed message if the graph is empty — Gemini is not called).
 5. Point at `out/demo/rag_compare.html` — retrieval-only, no fine-tuning, no abstract dumps into training.
