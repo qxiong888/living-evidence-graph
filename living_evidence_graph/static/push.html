@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Push · Living Evidence Graph</title>
+<link rel="stylesheet" href="/assets/style.css"/>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>One-click push into your LLM</h1>
+    <span class="badge">notify → consent → bind session</span>
+  </header>
+  <nav class="links">
+    <a href="/">Hub</a>
+    <a href="/compare">Compare</a>
+    <a href="/update">Update</a>
+    <a href="/session">/session</a>
+  </nav>
+  <p class="sub">No file download. This page binds <em>this demo session</em> to the latest public graph, then answers in the mode you choose.</p>
+  <div class="grid">
+    <div class="panel">
+      <div class="label before">Notification</div>
+      <div class="chat">
+        <div class="agent-row">
+          <div class="avatar">LEG</div>
+          <div>
+            <h2 id="notify-title">Living Evidence Graph updated</h2>
+            <p id="notify-body">Loading live edge count…</p>
+            <p class="status">Choose Grounded (RAG context) or Strict (graph-only / abstain if empty).</p>
+          </div>
+        </div>
+      </div>
+      <div class="mode-row">
+        <label><input type="radio" name="mode" value="grounded" checked/> Grounded</label>
+        <label><input type="radio" name="mode" value="strict"/> Strict</label>
+      </div>
+      <button type="button" id="push">Import / Push to LLM</button>
+      <p class="status">1 Agent updates graph unattended → 2 Notifies you → 3 You click agree → 4 Session binds; retrieval uses that graph</p>
+    </div>
+    <div class="panel">
+      <div class="label after">After push</div>
+      <h2 id="bound-title">Not bound yet</h2>
+      <p class="status" id="bound-meta">Click Import / Push. No zip, no paste, no upload.</p>
+      <div class="question" id="qbox" style="display:none"></div>
+      <div class="answer" id="answer">The bound-graph answer will appear here.</div>
+    </div>
+  </div>
+  <div class="disclaimer" id="disclaimer">
+    Public evidence graph demo only — not a medical product.
+    Under the hood this swaps the retrieval corpus / injects graph context (RAG) — still not fine-tuning.
+  </div>
+</div>
+<script>
+const EDGE_RE = /\b(edge_\d+|edge:[A-Za-z0-9:_-]+)\b/g;
+function esc(s) {
+  return String(s || "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+}
+function markEdges(text) {
+  return esc(text).replace(EDGE_RE, (m) => '<mark class="edge-id">' + esc(m) + "</mark>");
+}
+
+let demoQuestion = "";
+let edgeCount = 0;
+let graphSlug = "";
+
+async function boot() {
+  const [graph, sess] = await Promise.all([
+    fetch("/graph").then((r) => r.json()),
+    fetch("/session").then((r) => r.json()),
+  ]);
+  edgeCount = graph.edge_count;
+  graphSlug = graph.goal_slug || sess.demo_slug || "";
+  demoQuestion = sess.demo_question || "";
+  document.getElementById("notify-title").textContent =
+    "Living Evidence Graph updated (" + edgeCount + " edges)";
+  document.getElementById("notify-body").textContent =
+    "Unattended agent finished a refresh for " + graphSlug +
+    ". Push into your LLM? Session will bind to this graph. No download.";
+  if (graph.disclaimer) document.getElementById("disclaimer").textContent = graph.disclaimer;
+  if (sess.bound) {
+    document.getElementById("bound-title").innerHTML = '✓ Already bound';
+    document.getElementById("bound-meta").textContent =
+      "session " + sess.session_id + " · slug=" + sess.graph_slug + " · mode=" + sess.mode;
+  }
+}
+
+async function push() {
+  const mode = (document.querySelector('input[name="mode"]:checked') || {}).value || "grounded";
+  const btn = document.getElementById("push");
+  btn.disabled = true;
+  document.getElementById("bound-title").textContent = "Binding session…";
+  document.getElementById("answer").textContent = "Calling /session/push then /rag…";
+  try {
+    const bind = await fetch("/session/push", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({mode: mode}),
+    });
+    const sess = await bind.json();
+    if (!bind.ok) throw new Error(sess.detail || bind.status);
+    document.getElementById("bound-title").innerHTML = '✓ Pushed · session bound';
+    document.getElementById("bound-meta").textContent =
+      "session_id=" + sess.session_id +
+      " · slug=" + sess.graph_slug +
+      " · mode=" + sess.mode +
+      " · " + sess.edge_count + " edges · no download";
+    const q = sess.demo_question || demoQuestion;
+    demoQuestion = q;
+    document.getElementById("qbox").style.display = "block";
+    document.getElementById("qbox").textContent = q;
+    const rag = await fetch("/rag", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({
+        question: q,
+        k: 8,
+        strict: mode === "strict",
+        session_id: sess.session_id,
+      }),
+    });
+    const data = await rag.json();
+    if (!rag.ok) throw new Error(data.detail || rag.status);
+    const block = mode === "strict" ? (data.strict || data.grounded) : data.grounded;
+    document.getElementById("answer").innerHTML = markEdges((block || {}).text || "");
+    document.getElementById("bound-meta").textContent +=
+      " · rag graph_slug=" + (data.graph_slug || "") +
+      " · session_bound=" + data.session_bound;
+  } catch (err) {
+    document.getElementById("bound-title").textContent = "Push failed";
+    document.getElementById("answer").textContent = String(err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById("push").addEventListener("click", push);
+boot();
+</script>
+</body>
+</html>

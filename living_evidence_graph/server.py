@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from living_evidence_graph.agent import daily_refresh, ingest_goal
@@ -16,6 +17,19 @@ from living_evidence_graph.graph_store import load_graph
 from living_evidence_graph.private_ingest import ingest_directory, library_status
 from living_evidence_graph.rag import DISCLAIMER, rag_compare
 from living_evidence_graph.seed import seed_demo_graph_if_missing
+from living_evidence_graph.session_store import create_session, get_session
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+SESSION_COOKIE = "session_id"
+_HTML_PAGES = {
+    "index.html",
+    "compare.html",
+    "update.html",
+    "push.html",
+}
+_ASSET_TYPES = {
+    "style.css": "text/css",
+}
 
 
 @asynccontextmanager
@@ -31,9 +45,11 @@ app = FastAPI(
         "Text-first living evidence graph for LLM use. "
         "Default demo: pembrolizumab / Keytruda (NSCLC). "
         "Public data only — not a medical product. "
+        "GET / = demo hub (compare / update / push). "
         "GET /graph = demo graph node/edge counts (seeded 14/10 on cold start). "
         "GET /rag = same JSON in a browser (default demo question, strict=true). "
         "POST /rag = retrieval-augmented answer (question required; graph edges only). "
+        "POST /session/push = bind this demo session to the latest public graph. "
         "GET /changes = human-readable change digest (what / why / sources). "
         "POST /library/ingest = personal/enterprise private folder → private graph "
         "(never mixed with the public Keytruda demo)."
@@ -68,6 +84,10 @@ class RagBody(BaseModel):
         default=None,
         description="Alias for graph_slug when targeting a personal/enterprise private library.",
     )
+    session_id: str | None = Field(
+        default=None,
+        description="Optional demo session id (also accepted as cookie or query). Binds retrieval slug.",
+    )
 
 
 class LibraryIngestBody(BaseModel):
@@ -80,6 +100,95 @@ class LibraryIngestBody(BaseModel):
         default="personal",
         description="Product boundary: personal or enterprise private graph",
     )
+
+
+class SessionPushBody(BaseModel):
+    graph_slug: str | None = Field(
+        default=None,
+        description="Optional slug; demo one-click binds the public Keytruda graph when omitted or missing.",
+    )
+    mode: Literal["grounded", "strict"] = Field(
+        default="grounded",
+        description="RAG mode this session will use after push: grounded or strict.",
+    )
+
+
+def _html_page(name: str) -> FileResponse:
+    if name not in _HTML_PAGES:
+        raise HTTPException(404, "unknown page")
+    path = STATIC_DIR / name
+    if not path.is_file():
+        raise HTTPException(404, f"missing static page {name}")
+    return FileResponse(path, media_type="text/html; charset=utf-8")
+
+
+def _session_id_from(request: Request, session_id: str | None = None) -> str | None:
+    raw = (session_id or "").strip()
+    if raw:
+        return raw
+    cookie = (request.cookies.get(SESSION_COOKIE) or "").strip()
+    return cookie or None
+
+
+def _bind_slug(requested: str | None) -> tuple[str, dict[str, Any]]:
+    """Resolve a push slug. Missing/empty/unknown → public demo slug."""
+    seed_demo_graph_if_missing()
+    want = (requested or "").strip()
+    if want:
+        doc = load_graph(want)
+        if doc.get("nodes") or doc.get("edges"):
+            return want, doc
+    doc = load_graph(DEMO_GRAPH_SLUG)
+    return DEMO_GRAPH_SLUG, doc
+
+
+def _resolve_rag_slug(
+    request: Request,
+    *,
+    graph_slug: str | None,
+    library_slug: str | None,
+    session_id: str | None,
+) -> tuple[str | None, str | None]:
+    """Explicit slug wins; else bound session slug. Returns (slug, session_id)."""
+    explicit = (library_slug or graph_slug or "").strip() or None
+    sid = _session_id_from(request, session_id)
+    if explicit:
+        return explicit, sid
+    sess = get_session(sid)
+    if sess:
+        return sess.graph_slug, sid
+    return None, sid
+
+
+@app.get("/", include_in_schema=False)
+def hub_page() -> FileResponse:
+    return _html_page("index.html")
+
+
+@app.get("/compare", include_in_schema=False)
+def compare_page() -> FileResponse:
+    return _html_page("compare.html")
+
+
+@app.get("/update", include_in_schema=False)
+def update_page() -> FileResponse:
+    return _html_page("update.html")
+
+
+@app.get("/push", include_in_schema=False)
+def push_page() -> FileResponse:
+    return _html_page("push.html")
+
+
+@app.get("/assets/{filename}", include_in_schema=False)
+def static_asset(filename: str) -> FileResponse:
+    media = _ASSET_TYPES.get(filename)
+    if not media:
+        raise HTTPException(404, "unknown asset")
+    path = STATIC_DIR / filename
+    if not path.is_file():
+        raise HTTPException(404, f"missing asset {filename}")
+    return FileResponse(path, media_type=media)
 
 
 @app.get("/health")
@@ -96,6 +205,8 @@ def health() -> dict[str, Any]:
         "rag": True,
         "changes": True,
         "private_library": True,
+        "session_push": True,
+        "pages": True,
         "graph_slug": slug,
         "node_count": len(doc.get("nodes") or []),
         "edge_count": len(doc.get("edges") or []),
@@ -235,6 +346,82 @@ def get_library(slug: str) -> JSONResponse:
     return JSONResponse(status)
 
 
+@app.post("/session/push")
+def session_push(body: SessionPushBody) -> JSONResponse:
+    """Bind this demo session to the latest public graph (no file download)."""
+    slug, doc = _bind_slug(body.graph_slug)
+    nodes = list(doc.get("nodes") or [])
+    edges = list(doc.get("edges") or [])
+    sess = create_session(
+        graph_slug=slug,
+        mode=body.mode,
+        node_count=len(nodes),
+        edge_count=len(edges),
+    )
+    payload = {
+        "bound": True,
+        "session_id": sess.session_id,
+        "graph_slug": sess.graph_slug,
+        "mode": sess.mode,
+        "created_at": sess.created_at,
+        "node_count": sess.node_count,
+        "edge_count": sess.edge_count,
+        "demo_slug": DEMO_GRAPH_SLUG,
+        "demo_question": DEMO_RAG_QUESTION,
+        "disclaimer": DISCLAIMER,
+        "download": False,
+    }
+    out = JSONResponse(payload)
+    out.set_cookie(
+        SESSION_COOKIE,
+        sess.session_id,
+        httponly=True,
+        samesite="lax",
+        path="/",
+        max_age=86400,
+    )
+    return out
+
+
+@app.get("/session")
+def session_get(
+    request: Request,
+    session_id: str | None = Query(
+        default=None,
+        description="Optional session id; otherwise the session_id cookie is used",
+    ),
+) -> JSONResponse:
+    """Current demo session (bound slug/mode) plus the default RAG question."""
+    sid = _session_id_from(request, session_id)
+    sess = get_session(sid)
+    if sess is None:
+        return JSONResponse(
+            {
+                "bound": False,
+                "session_id": None,
+                "graph_slug": None,
+                "mode": None,
+                "demo_slug": DEMO_GRAPH_SLUG,
+                "demo_question": DEMO_RAG_QUESTION,
+                "disclaimer": DISCLAIMER,
+            }
+        )
+    return JSONResponse(
+        {
+            "bound": True,
+            "session_id": sess.session_id,
+            "graph_slug": sess.graph_slug,
+            "mode": sess.mode,
+            "created_at": sess.created_at,
+            "node_count": sess.node_count,
+            "edge_count": sess.edge_count,
+            "demo_slug": DEMO_GRAPH_SLUG,
+            "demo_question": DEMO_RAG_QUESTION,
+            "disclaimer": DISCLAIMER,
+        }
+    )
+
+
 def _rag_payload(
     *,
     question: str,
@@ -242,6 +429,7 @@ def _rag_payload(
     strict: bool,
     graph_slug: str | None,
     library_slug: str | None,
+    session_id: str | None = None,
 ) -> dict[str, Any]:
     """Shared GET/POST /rag body. POST still requires a non-empty question."""
     q = (question or "").strip()
@@ -263,6 +451,8 @@ def _rag_payload(
         "graph_slug": result.get("graph_slug") or slug,
         "gemini_used": result.get("gemini_used"),
         "strict_requested": bool(strict),
+        "session_id": session_id,
+        "session_bound": bool(session_id and get_session(session_id)),
     }
     if strict:
         payload["strict"] = result.get("strict")
@@ -270,21 +460,36 @@ def _rag_payload(
 
 
 @app.post("/rag")
-def rag_post(body: RagBody) -> JSONResponse:
+def rag_post(
+    body: RagBody,
+    request: Request,
+    session_id: str | None = Query(
+        default=None,
+        description="Optional demo session id (cookie session_id also honored)",
+    ),
+) -> JSONResponse:
     """Retrieve high-trust graph edges; bare vs grounded (+ optional strict) Gemini."""
+    slug, sid = _resolve_rag_slug(
+        request,
+        graph_slug=body.graph_slug,
+        library_slug=body.library_slug,
+        session_id=body.session_id or session_id,
+    )
     return JSONResponse(
         _rag_payload(
             question=body.question,
             k=body.k,
             strict=bool(body.strict),
-            graph_slug=body.graph_slug,
-            library_slug=body.library_slug,
+            graph_slug=slug,
+            library_slug=None,
+            session_id=sid,
         )
     )
 
 
 @app.get("/rag")
 def rag_get(
+    request: Request,
     question: str | None = Query(
         default=None,
         description="Optional; defaults to DEMO_RAG_QUESTION (compare-page mixed question)",
@@ -302,15 +507,26 @@ def rag_get(
         default=None,
         description="Alias for graph_slug when targeting a private library",
     ),
+    session_id: str | None = Query(
+        default=None,
+        description="Optional demo session id (cookie session_id also honored)",
+    ),
 ) -> JSONResponse:
     """Same JSON as POST /rag. Open in a browser; question defaults to DEMO_RAG_QUESTION."""
     q = (question or "").strip() or DEMO_RAG_QUESTION
+    slug, sid = _resolve_rag_slug(
+        request,
+        graph_slug=graph_slug,
+        library_slug=library_slug,
+        session_id=session_id,
+    )
     return JSONResponse(
         _rag_payload(
             question=q,
             k=k,
             strict=bool(strict),
-            graph_slug=graph_slug,
-            library_slug=library_slug,
+            graph_slug=slug,
+            library_slug=None,
+            session_id=sid,
         )
     )

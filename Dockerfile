@@ -14,7 +14,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY living_evidence_graph ./living_evidence_graph
-# fixtures/ includes demo_graph/ (baked Keytruda/NSCLC 14/10 JSON). Do not COPY out/.
+# Explicit static copy (hub /compare /update /push). Do not COPY out/ or scripts/.
+COPY living_evidence_graph/static ./living_evidence_graph/static
+# fixtures/ includes demo_graph/ (baked Keytruda/NSCLC 14/10 JSON).
 COPY fixtures ./fixtures
 
 EXPOSE 8080

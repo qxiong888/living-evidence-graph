@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Compare · Living Evidence Graph</title>
+<link rel="stylesheet" href="/assets/style.css"/>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Bare vs Grounded vs Strict</h1>
+    <span class="badge">live /rag · same question</span>
+  </header>
+  <nav class="links">
+    <a href="/">Hub</a>
+    <a href="/update">Update</a>
+    <a href="/push">Push</a>
+    <a href="/rag">/rag JSON</a>
+  </nav>
+  <p class="sub">Mixed demo question from the service config. Page chrome does not add trial or paper IDs.</p>
+  <div id="question" class="question">Loading question…</div>
+  <button type="button" id="run">Run live compare</button>
+  <p class="status" id="status"></p>
+  <div class="cols-3">
+    <div class="panel">
+      <div class="label bare">Bare</div>
+      <h2>No graph context</h2>
+      <div class="answer" id="bare">—</div>
+    </div>
+    <div class="panel">
+      <div class="label grounded">Grounded</div>
+      <h2>RAG on retrieved edges</h2>
+      <div class="answer" id="grounded">—</div>
+    </div>
+    <div class="panel">
+      <div class="label strict">Strict</div>
+      <h2>Graph-only / abstain if empty</h2>
+      <div class="answer" id="strict">—</div>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h2>Retrieved edges</h2>
+    <ul class="edges" id="edges"></ul>
+  </div>
+  <div class="disclaimer" id="disclaimer">
+    Public evidence graph demo only — not a medical product.
+    Unverifiable-looking IDs in the bare column are highlighted in red.
+    Graph edge ids in grounded/strict answers are highlighted in green.
+  </div>
+</div>
+<script>
+const ID_RE = /\b(NCT\d+|PMID[:\s]?\d+|CHEMBL\d+|ENSG\d+|MONDO_\d+|setid:[0-9a-f-]+)\b/gi;
+const EDGE_RE = /\b(edge_\d+|edge:[A-Za-z0-9:_-]+)\b/g;
+
+function esc(s) {
+  return String(s || "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+}
+function knownIds(edges) {
+  const set = new Set();
+  for (const e of edges || []) {
+    const blob = [e.id, e.source, e.target, e.source_label, e.target_label]
+      .concat(e.sources || []).concat(e.evidence_urls || []).join(" ");
+    String(blob).replace(ID_RE, (m) => { set.add(m.toUpperCase().replace(/\s+/g, "")); return m; });
+  }
+  return set;
+}
+function markBare(text, known) {
+  return esc(text).replace(ID_RE, (m) => {
+    const key = m.toUpperCase().replace(/\s+/g, "");
+    if (known.has(key)) return esc(m);
+    return '<mark class="unverifiable">' + esc(m) + "</mark>";
+  });
+}
+function markEdges(text) {
+  return esc(text).replace(EDGE_RE, (m) => '<mark class="edge-id">' + esc(m) + "</mark>");
+}
+
+let question = "";
+
+async function boot() {
+  const s = await fetch("/session").then((r) => r.json());
+  question = s.demo_question || "";
+  document.getElementById("question").textContent = question;
+  if (s.disclaimer) document.getElementById("disclaimer").textContent = s.disclaimer;
+}
+
+async function run() {
+  const btn = document.getElementById("run");
+  const status = document.getElementById("status");
+  btn.disabled = true;
+  status.textContent = "Calling POST /rag (bare + grounded + strict)…";
+  try {
+    const r = await fetch("/rag", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify({question: question, k: 8, strict: true}),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || r.status);
+    const edges = data.retrieved_edges || [];
+    const known = knownIds(edges);
+    document.getElementById("bare").innerHTML = markBare((data.bare || {}).text, known);
+    document.getElementById("grounded").innerHTML = markEdges((data.grounded || {}).text);
+    document.getElementById("strict").innerHTML = markEdges(((data.strict || {}).text) || "");
+    document.getElementById("edges").innerHTML = edges.map((e) =>
+      "<li><code>" + esc(e.id) + "</code> · " + esc(e.type) + " · " +
+      esc(e.source_label || e.source) + " → " + esc(e.target_label || e.target) + "</li>"
+    ).join("") || "<li>No edges retrieved.</li>";
+    status.textContent = "graph_slug=" + (data.graph_slug || "default") +
+      " · " + edges.length + " edges · gemini_used=" + data.gemini_used;
+    if (data.disclaimer) document.getElementById("disclaimer").textContent = data.disclaimer;
+  } catch (err) {
+    status.textContent = "RAG failed: " + err;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.getElementById("run").addEventListener("click", run);
+boot();
+</script>
+</body>
+</html>

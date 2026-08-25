@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Living Evidence Graph</title>
+<link rel="stylesheet" href="/assets/style.css"/>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Living Evidence Graph</h1>
+    <span class="badge">public demo · not a medical product</span>
+  </header>
+  <p class="sub">Pembrolizumab / Keytruda · NSCLC — unattended agent keeps a trust-scored graph so LLM answers stay checkable.</p>
+  <div class="grid">
+    <div class="card">
+      <h2><a href="/compare">Compare</a></h2>
+      <p>Same mixed question. Bare vs Grounded vs Strict. Unverifiable IDs in red; graph <code>edge_</code> citations in green.</p>
+    </div>
+    <div class="card">
+      <h2><a href="/update">Update</a></h2>
+      <p>Before / after from live <code>/graph</code> and first-build <code>/changes</code> digest (what / why / sources).</p>
+    </div>
+    <div class="card">
+      <h2><a href="/push">Push</a></h2>
+      <p>One-click: agent notifies → you consent → session binds to the latest graph. Grounded or Strict. No download.</p>
+    </div>
+  </div>
+  <nav class="links">
+    <a href="/graph">/graph</a>
+    <a href="/changes">/changes</a>
+    <a href="/health">/health</a>
+    <a href="/rag">/rag</a>
+    <a href="/docs">/docs</a>
+  </nav>
+  <div class="disclaimer">
+    Public evidence graph demo only — not a medical product.
+    openFDA FAERS values are voluntary reports, not incidence rates, and not causation.
+    Not endorsed by FDA, NLM, NIH, NCBI, Open Targets, or ChEMBL.
+    LLM path is retrieval-only over the graph (no abstract/full-text training dumps).
+  </div>
+</div>
+</body>
+</html>

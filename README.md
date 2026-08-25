@@ -144,8 +144,9 @@ python scripts/demo_rag.py
 
 # HTTP API
 uvicorn living_evidence_graph.server:app --host 0.0.0.0 --port 8080
-# GET /health  ·  GET /graph  ·  GET/POST /rag  ·  POST /run  ·  POST /scheduler
-# POST /library/ingest  ·  GET /library/{slug}
+# GET /  ·  GET /compare  ·  GET /update  ·  GET /push
+# GET /health  ·  GET /graph  ·  GET/POST /rag  ·  POST /session/push  ·  GET /session
+# POST /run  ·  POST /scheduler  ·  POST /library/ingest  ·  GET /library/{slug}
 ```
 
 **Assumed drug strings for the demo:** brand `Keytruda`, ingredient `pembrolizumab`, condition `non-small cell lung cancer`.
@@ -243,6 +244,12 @@ Public service (min-instances 0, `us-central1`):
 `https://living-evidence-graph-892760629727.us-central1.run.app`
 
 ```bash
+# Demo hub + one-click push / compare / update (HTML)
+# https://living-evidence-graph-892760629727.us-central1.run.app/
+# https://living-evidence-graph-892760629727.us-central1.run.app/push
+# https://living-evidence-graph-892760629727.us-central1.run.app/compare
+# https://living-evidence-graph-892760629727.us-central1.run.app/update
+
 # Browser-openable RAG (default mixed question, k=8, strict=true)
 # https://living-evidence-graph-892760629727.us-central1.run.app/rag
 curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/rag
@@ -266,5 +273,5 @@ curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/rag \
 
 Local twin: `python -m scripts.demo_rag` → `out/demo/rag_compare.html` (and live pages B/C: `graph_update_before_after.html`, `llm_imports_graph.html`).
 
-**One-click push (product UX):** unattended agent updates the living graph → notifies the user (“Living Evidence Graph updated — Push into your LLM?”) → user clicks **Import / Push to LLM** → agent binds the session to the latest graph slug (swap retrieval corpus / inject graph context). Push enables **two modes** the user chooses: **Grounded** (retrieve/inject edges as RAG context — not graph-only) and **Strict** (answers only from the graph; abstain if empty). No file download and no manual import steps — still RAG, not fine-tuning. Push is not “answers only from the graph” unless they pick Strict.
+**One-click push (live at `/push`):** unattended agent updates the living graph → notifies the user (“Living Evidence Graph updated — N edges. Push into your LLM?”) → user clicks **Import / Push to LLM** → `POST /session/push` binds **this demo session** to the public Keytruda slug (cookie + `session_id`; `GET /rag` and `POST /rag` honor it). Push enables **two modes** the user chooses: **Grounded** (retrieve/inject edges as RAG context — not graph-only) and **Strict** (answers only from the graph; abstain if empty). No file download and no manual import steps — still RAG, not fine-tuning. Push is not “answers only from the graph” unless they pick Strict. Compare (`/compare`) and first-build update (`/update`) are live HTML on the same service.
 

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Update · Living Evidence Graph</title>
+<link rel="stylesheet" href="/assets/style.css"/>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>Unattended refresh — before vs after</h1>
+    <span class="badge">live /graph + /changes</span>
+  </header>
+  <nav class="links">
+    <a href="/">Hub</a>
+    <a href="/compare">Compare</a>
+    <a href="/push">Push</a>
+    <a href="/graph">/graph</a>
+    <a href="/changes">/changes</a>
+  </nav>
+  <p class="sub" id="sub">First-build digest from empty baseline. Counts come from the live graph, not a stale card.</p>
+  <div class="grid">
+    <div class="panel">
+      <div class="label before">Before · first build</div>
+      <h2>No living graph yet</h2>
+      <div class="counts">
+        <div class="pill"><span class="n">0</span><span class="k">nodes</span></div>
+        <div class="pill"><span class="n">0</span><span class="k">edges</span></div>
+        <div class="pill"><span class="n">—</span><span class="k">digest</span></div>
+      </div>
+      <div class="empty">Goal entered. Graph empty.<br/>Waiting for unattended agent refresh.</div>
+      <p class="status" id="before-note">prev_snapshot = none (first build)</p>
+    </div>
+    <div class="panel">
+      <div class="label after">After · living graph</div>
+      <h2 id="after-title">Loading…</h2>
+      <div class="counts">
+        <div class="pill"><span class="n" id="n-nodes">—</span><span class="k">nodes</span></div>
+        <div class="pill"><span class="n" id="n-edges">—</span><span class="k">edges</span></div>
+        <div class="pill"><span class="n" id="n-changes">—</span><span class="k">changes</span></div>
+      </div>
+      <p class="status" id="after-meta"></p>
+      <table>
+        <thead><tr><th>Type</th><th>Sample edge</th><th>Trust</th><th>Sources</th></tr></thead>
+        <tbody id="edge-rows"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel" style="margin-top:12px">
+    <h2>Change digest — what / why / sources</h2>
+    <p class="status" id="digest-meta"></p>
+    <table>
+      <thead><tr><th>what</th><th>why</th><th>ref</th><th>sources</th></tr></thead>
+      <tbody id="digest-rows"></tbody>
+    </table>
+  </div>
+  <div class="disclaimer" id="disclaimer">
+    Public evidence graph demo only — not a medical product.
+    openFDA FAERS values are voluntary reports, not incidence rates, and not causation.
+  </div>
+</div>
+<script>
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+}
+
+async function boot() {
+  const [gRes, cRes] = await Promise.all([fetch("/graph"), fetch("/changes")]);
+  const graph = await gRes.json();
+  const digest = await cRes.json();
+  const nodes = graph.node_count;
+  const edges = graph.edge_count;
+  document.getElementById("n-nodes").textContent = nodes;
+  document.getElementById("n-edges").textContent = edges;
+  document.getElementById("n-changes").textContent = digest.change_count == null ? "—" : digest.change_count;
+  document.getElementById("after-title").textContent = graph.goal || graph.goal_slug || "Living graph";
+  document.getElementById("after-meta").textContent =
+    "slug=" + (graph.goal_slug || "") +
+    " · saved " + String((graph.meta || {}).saved_at || "").slice(0, 19);
+  if (graph.disclaimer) document.getElementById("disclaimer").textContent = graph.disclaimer;
+
+  const prev = digest.prev_snapshot;
+  document.getElementById("before-note").textContent = prev
+    ? "Prior snapshot present in digest"
+    : "prev_snapshot = none (first-build digest from empty baseline)";
+
+  const sample = (graph.edges || []).slice().sort((a, b) =>
+    (Number(b.trust_score) || 0) - (Number(a.trust_score) || 0)
+  ).slice(0, 6);
+  document.getElementById("edge-rows").innerHTML = sample.map((e) =>
+    "<tr><td>" + esc(e.type) + "</td><td>" +
+    esc(e.source) + " → " + esc(e.target) +
+    "</td><td>" + esc(e.trust_score) + "</td><td>" +
+    esc((e.sources || []).join(", ")) + "</td></tr>"
+  ).join("");
+
+  const by = digest.by_what || {};
+  document.getElementById("digest-meta").textContent =
+    "change_count=" + (digest.change_count == null ? "?" : digest.change_count) +
+    " · by_what=" + JSON.stringify(by) +
+    " · slug=" + (digest.goal_slug || graph.goal_slug || "");
+  document.getElementById("digest-rows").innerHTML = (digest.changes || []).slice(0, 16).map((c) =>
+    "<tr><td>" + esc(c.what) + "</td><td>" + esc(c.why) + "</td><td><code>" +
+    esc(c.edge_or_node_ref) + "</code></td><td>" +
+    esc((c.sources || []).join(", ") || "—") + "</td></tr>"
+  ).join("");
+}
+
+boot().catch((err) => {
+  document.getElementById("after-title").textContent = "Failed to load live graph";
+  document.getElementById("after-meta").textContent = String(err);
+});
+</script>
+</body>
+</html>

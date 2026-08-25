@@ -23,6 +23,9 @@ dependencies = [
 [tool.setuptools.packages.find]
 include = ["living_evidence_graph*"]
 
+[tool.setuptools.package-data]
+living_evidence_graph = ["static/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
