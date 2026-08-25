@@ -14,6 +14,11 @@ from living_evidence_graph.agent import daily_refresh, ingest_goal
 from living_evidence_graph.changes import diff, digest_document, load_digest, load_snapshot
 from living_evidence_graph.config import DEMO_GOAL, DEMO_GRAPH_SLUG, DEMO_RAG_QUESTION, GEMINI_MODEL
 from living_evidence_graph.graph_store import load_graph
+from living_evidence_graph.library_watch import (
+    start_watcher,
+    start_watchers_from_manifests,
+    stop_all_watchers,
+)
 from living_evidence_graph.private_ingest import ingest_directory, library_status
 from living_evidence_graph.rag import DISCLAIMER, rag_compare
 from living_evidence_graph.seed import seed_demo_graph_if_missing
@@ -34,9 +39,13 @@ _ASSET_TYPES = {
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Copy baked fixtures/demo_graph into GRAPH_DIR when the slug file is missing."""
+    """Seed the public demo graph, then watch existing private folders."""
     seed_demo_graph_if_missing()
-    yield
+    start_watchers_from_manifests()
+    try:
+        yield
+    finally:
+        stop_all_watchers()
 
 
 app = FastAPI(
@@ -52,7 +61,7 @@ app = FastAPI(
         "POST /session/push = bind this demo session to the latest public graph. "
         "GET /changes = human-readable change digest (what / why / sources). "
         "POST /library/ingest = personal/enterprise private folder → private graph "
-        "(never mixed with the public Keytruda demo)."
+        "(never mixed with the public Keytruda demo; first ingest starts a folder watcher)."
     ),
     version="0.1.0",
     lifespan=lifespan,
@@ -334,6 +343,9 @@ def library_ingest(body: LibraryIngestBody) -> JSONResponse:
         raise HTTPException(400, str(e)) from e
     except Exception as e:  # noqa: BLE001
         raise HTTPException(502, f"library ingest failed: {e}") from e
+    watching = start_watcher(result["library_slug"], result.get("watched_path"))
+    result["auto_refresh"] = watching
+    result["watching"] = watching
     return JSONResponse(result)
 
 

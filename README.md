@@ -160,6 +160,7 @@ living_evidence_graph/
   agent.py          # ADK tools: ingest_goal, fetch_sources, extract_edges, …
   server.py         # FastAPI (/health /run /scheduler /rag /library/*)
   private_ingest.py # personal/enterprise folder → private living graph
+  library_watch.py  # auto-refresh private graphs when the folder changes
   rag.py            # retrieve top-k edges → bare / grounded / strict Gemini
   extract.py        # triples (Gemini JSON structure when keyed; else rules)
   credibility.py    # pure trust formula
@@ -204,22 +205,31 @@ Point the Taskmaster at a **local directory** of documents to build a **private*
 
 Supported files (MVP): `.txt` `.md` `.html` `.csv` `.json` `.pdf` (via pypdf). Local absolute path on the machine running the service is enough for the contest demo narrative — no cloud storage required.
 
-**CLI (build or refresh):**
+**First ingest registers the folder.** After that, while **uvicorn** (or the CLI `--watch` process) is running, add / edit / delete of supported files **auto-rebuilds** the private graph — you do not re-run ingest by hand. Debounced (~1s) so a burst of writes is one refresh.
+
+The **Cloud Run public demo has no user folders.** Watchers start only when `watched_path` is a real directory on the machine; on Cloud Run they no-op. The public Keytruda graph stays the baked 14/10 demo and is never mixed with private libraries.
+
+**CLI:**
 ```bash
+# One-shot ingest (still works). Leave the server or --watch running for auto-refresh.
 python -m living_evidence_graph.private_ingest --dir /path/to/my-papers --slug my-lib --mode personal
+
+# First ingest, then stay running and auto-refresh until Ctrl-C
+python -m living_evidence_graph.private_ingest --dir /path/to/my-papers --slug my-lib --mode personal --watch
+
 # enterprise boundary flag:
-python -m living_evidence_graph.private_ingest --dir /path/to/org-vault --slug org-lib --mode enterprise
+python -m living_evidence_graph.private_ingest --dir /path/to/org-vault --slug org-lib --mode enterprise --watch
 ```
 
-On each run the agent re-scans the folder, writes `out/graph/private_<slug>.json` + `.manifest.json`, snapshots the prior graph, and emits a change digest (`what` / `why` / `sources` = file paths) at `out/graph/private_<slug>.changes.json`.
+The first run writes `out/graph/private_<slug>.json` + `.manifest.json` (includes `watched_path` + per-file size/mtime). Later auto-refresh snapshots the prior graph and emits a change digest (`what` / `why` / `sources` = file paths) at `out/graph/private_<slug>.changes.json`.
 
-**HTTP (sync scan for demo; large dirs → prefer CLI):**
+**HTTP (first ingest registers the folder; uvicorn keeps watching):**
 ```bash
-# Ingest / refresh
+# First ingest — starts a background watcher for that path
 curl -s localhost:8080/library/ingest -H 'content-type: application/json' \
   -d '{"path":"/path/to/my-papers","slug":"my-lib","mode":"personal"}'
 
-# Status
+# Status (auto_refresh / watching are true while the watcher is live)
 curl -s localhost:8080/library/my-lib
 
 # Strict answers only from that private graph (abstain if empty / no hits)

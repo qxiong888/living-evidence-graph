@@ -17,6 +17,8 @@ import html
 import json
 import re
 import sys
+import threading
+import time
 from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
@@ -36,6 +38,19 @@ SUPPORTED_SUFFIXES = frozenset(
 SKIP_DIR_NAMES = frozenset(
     {".git", ".svn", "__pycache__", ".venv", "venv", "node_modules", ".pytest_cache"}
 )
+
+_ingest_locks_guard = threading.Lock()
+_ingest_locks: dict[str, threading.RLock] = {}
+
+
+def _ingest_lock(library_slug: str) -> threading.RLock:
+    """One ingest/refresh at a time per private library slug."""
+    with _ingest_locks_guard:
+        lock = _ingest_locks.get(library_slug)
+        if lock is None:
+            lock = threading.RLock()
+            _ingest_locks[library_slug] = lock
+        return lock
 
 _HEADING_RE = re.compile(r"^(#{1,3})\s+(.+)$", re.M)
 _TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9\-_/]{1,60}")
@@ -556,6 +571,19 @@ def ingest_directory(
         raise FileNotFoundError(f"directory not found: {root}")
 
     library_slug = normalize_library_slug(slug, root)
+    with _ingest_lock(library_slug):
+        return _ingest_directory_locked(
+            root, library_slug=library_slug, mode=mode, goal=goal
+        )
+
+
+def _ingest_directory_locked(
+    root: Path,
+    *,
+    library_slug: str,
+    mode: LibraryMode,
+    goal: str | None,
+) -> dict[str, Any]:
     inventory = scan_directory(root)
 
     items: list[dict[str, Any]] = []
@@ -622,24 +650,127 @@ def ingest_directory(
     }
 
 
-def library_status(library_slug: str) -> dict[str, Any] | None:
-    """Status from manifest + graph counts."""
+
+def normalize_existing_slug(library_slug: str) -> str | None:
+    """Resolve a user-facing slug to the on-disk slug if graph or manifest exists."""
     slug = (library_slug or "").strip()
     if not slug:
         return None
     if not slug.startswith("private_"):
-        # Accept bare slug used in API if graph exists under private_ prefix
         alt = f"private_{_slug(slug)}"
         if (GRAPH_DIR / f"{alt}.json").exists() or manifest_path(alt).exists():
-            slug = alt
-        elif not (GRAPH_DIR / f"{slug}.json").exists():
+            return alt
+        if not (GRAPH_DIR / f"{slug}.json").exists() and not manifest_path(slug).exists():
             return None
+    return slug
+
+
+def resolve_private_slug(library_slug: str) -> str | None:
+    """Like normalize_existing_slug but never returns the public demo slug."""
+    slug = normalize_existing_slug(library_slug)
+    if slug is None or not slug.startswith("private_"):
+        return None
+    return slug
+
+
+def _file_sig(entry: dict[str, Any]) -> tuple[str, int, int]:
+    rel = str(entry.get("rel_path") or entry.get("path") or "").replace("\\", "/")
+    return (rel, int(entry.get("size") or 0), int(entry.get("mtime") or 0))
+
+
+def library_needs_refresh(library_slug: str) -> bool:
+    """True when watched folder files (path + size + mtime) differ from the manifest.
+
+    Skip (False) when there is no private library, or watched_path is missing
+    (Cloud Run public demo has no user folders).
+    """
+    slug = resolve_private_slug(library_slug)
+    if slug is None:
+        return False
+    manifest = load_manifest(slug)
+    if not manifest:
+        return False
+    watched = manifest.get("watched_path")
+    if not watched:
+        return False
+    root = Path(str(watched)).expanduser()
+    if not root.is_dir():
+        return False
+    try:
+        current = scan_directory(root)
+    except FileNotFoundError:
+        return False
+    now_set = {_file_sig(e) for e in current}
+    old_set = {_file_sig(f) for f in (manifest.get("files") or [])}
+    return now_set != old_set
+
+
+def refresh_if_stale(library_slug: str) -> dict[str, Any]:
+    """Re-ingest when the watched folder changed; no-op when unchanged or path missing."""
+    slug = resolve_private_slug(library_slug)
+    if slug is None:
+        return {
+            "status": "skipped",
+            "reason": "unknown_library",
+            "refreshed": False,
+            "library_slug": library_slug,
+        }
+    with _ingest_lock(slug):
+        manifest = load_manifest(slug) or {}
+        watched = manifest.get("watched_path")
+        if not watched:
+            return {
+                "status": "skipped",
+                "reason": "no_watched_path",
+                "refreshed": False,
+                "library_slug": slug,
+            }
+        root = Path(str(watched)).expanduser()
+        if not root.is_dir():
+            return {
+                "status": "skipped",
+                "reason": "watched_path_missing",
+                "refreshed": False,
+                "library_slug": slug,
+                "watched_path": str(root),
+            }
+        if not library_needs_refresh(slug):
+            return {
+                "status": "unchanged",
+                "refreshed": False,
+                "library_slug": slug,
+                "watched_path": str(root.resolve()),
+                "file_count": manifest.get("file_count", 0),
+                "node_count": manifest.get("node_count", 0),
+                "edge_count": manifest.get("edge_count", 0),
+            }
+        mode = manifest.get("mode") or "personal"
+        if mode not in ("personal", "enterprise"):
+            mode = "personal"
+        result = ingest_directory(root, slug=slug, mode=mode)
+        result["status"] = "refreshed"
+        result["refreshed"] = True
+        return result
+
+
+def library_status(library_slug: str) -> dict[str, Any] | None:
+    """Status from manifest + graph counts."""
+    slug = normalize_existing_slug(library_slug)
+    if slug is None:
+        return None
 
     manifest = load_manifest(slug) or {}
     graph = load_graph(slug)
     has_graph = bool(graph.get("nodes") or graph.get("edges") or (GRAPH_DIR / f"{slug}.json").exists())
     if not has_graph and not manifest:
         return None
+    watching = False
+    try:
+        from living_evidence_graph.library_watch import is_watching
+
+        watching = is_watching(slug)
+    except Exception:  # noqa: BLE001
+        watching = False
     return {
         "library_slug": slug,
         "mode": manifest.get("mode") or (graph.get("meta") or {}).get("mode") or "personal",
@@ -657,6 +788,8 @@ def library_status(library_slug: str) -> dict[str, Any] | None:
         "manifest_path": str(manifest_path(slug)),
         "public_demo_mixed": False,
         "change_digest": (graph.get("meta") or {}).get("change_digest"),
+        "auto_refresh": watching,
+        "watching": watching,
     }
 
 
@@ -665,7 +798,9 @@ def main(argv: list[str] | None = None) -> int:
         prog="python -m living_evidence_graph.private_ingest",
         description=(
             "Ingest a local directory into a personal/enterprise private living graph "
-            "(separate from the public Keytruda demo)."
+            "(separate from the public Keytruda demo). "
+            "Without --watch this is a one-shot ingest; leave the server or --watch "
+            "running so later folder changes auto-refresh the private graph."
         ),
     )
     parser.add_argument(
@@ -689,6 +824,14 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Optional goal string for the graph document",
     )
+    parser.add_argument(
+        "--watch",
+        action="store_true",
+        help=(
+            "After the first ingest, stay running and auto-refresh the private graph "
+            "when files change (Ctrl-C to stop). Without --watch, one-shot ingest only."
+        ),
+    )
     args = parser.parse_args(argv)
     try:
         result = ingest_directory(
@@ -701,7 +844,39 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"status": "error", "error": str(e)}), file=sys.stderr)
         return 1
     print(json.dumps(result, indent=2))
-    return 0
+    if not args.watch:
+        return 0
+
+    from living_evidence_graph.library_watch import start_watcher, stop_watcher
+
+    slug = result["library_slug"]
+    started = start_watcher(slug, result.get("watched_path"))
+    result["auto_refresh"] = started
+    result["watching"] = started
+    if not started:
+        print(
+            json.dumps(
+                {
+                    "status": "error",
+                    "error": "could not start watcher (watched_path missing?)",
+                    "library_slug": slug,
+                }
+            ),
+            file=sys.stderr,
+        )
+        return 1
+    print(
+        f"Watching {result.get('watched_path')} for {slug}. "
+        "File changes auto-refresh the private graph. Ctrl-C to stop.",
+        file=sys.stderr,
+    )
+    try:
+        while True:
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        stop_watcher(slug)
+        print(json.dumps({"status": "stopped", "library_slug": slug}))
+        return 0
 
 
 if __name__ == "__main__":
