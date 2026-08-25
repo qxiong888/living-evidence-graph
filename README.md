@@ -180,6 +180,8 @@ living_evidence_graph/
 
 ## RAG retrieval demo (judge beat ~30–40s)
 
+**Compare punchline:** the same mixed question has graph-backed facts (NSCLC indication, PDCD1, DailyMed warnings, KEYNOTE-799) **plus KEYNOTE-888, which is not in the 14/10 graph**. Bare may invent; grounded cites openable edge IDs; strict answers the graph-backed clauses and leaves the KEYNOTE-888 clause empty. Not who writes better — who does not invent what the graph lacks.
+
 1. Ask a Keytruda / NSCLC question (`GET /rag` in a browser, `POST /rag`, or `scripts/demo_rag.py`).
 2. Retriever ranks edges by **trust_score** + keyword/entity overlap (boosts triangle spine + `evidence_urls`). **Public** default = every edge. **Personal** default `k=32`. **Enterprise** default `k=128`. Ranking does not hide edges on the public full-graph path. Optional `k`; if a public caller opts into `k` without a number, `k=32`. `0` / `all` / `null` = full graph. Graph smaller than `k` still injects all edges.
 3. Show **bare Gemini** vs **grounded Gemini** (system instruction: cite only provided edges; refuse causation/rates; say when graph lacks evidence).
