@@ -471,6 +471,7 @@ def _rag_payload(
         "grounded": result["grounded"],
         "disclaimer": result.get("disclaimer") or DISCLAIMER,
         "k": result.get("k"),
+        "graph_mode": result.get("graph_mode"),
         "graph_path": result.get("graph_path"),
         "graph_slug": result.get("graph_slug") or slug,
         "gemini_used": result.get("gemini_used"),
