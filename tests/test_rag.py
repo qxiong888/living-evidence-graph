@@ -229,11 +229,11 @@ def test_answer_strict_nonempty_user_prompt_is_partial(monkeypatch):
     assert "do not use the global abstain" in user
 
 
-def test_demo_question_is_reed_mixed():
-    """Live compare uses Reed mixed question (graph clauses + KEYNOTE-888 trap)."""
-    from pathlib import Path
+def test_demo_rag_question_is_mixed_graph_and_keynote_888():
+    """Default /rag + compare question: graph-backed clauses + KEYNOTE-888 trap."""
+    from living_evidence_graph.config import DEMO_RAG_QUESTION
 
-    src = (Path(__file__).resolve().parents[1] / "scripts" / "demo_rag.py").read_text()
+    src = DEMO_RAG_QUESTION
     assert "What NSCLC indication and PDCD1 target" in src
     assert "DailyMed" in src
     assert "pneumonitis" in src and "hepatitis" in src
@@ -241,4 +241,54 @@ def test_demo_question_is_reed_mixed():
     assert "NCT03631784" in src
     assert "KEYNOTE-888" in src
     assert "hazard ratio" in src.lower()
-    assert "Do not invent IDs or claim causation" not in src.split("DEMO_QUESTION")[1][:800]
+    assert "Do not invent IDs or claim causation" not in src
+
+
+def test_get_rag_uses_default_question(monkeypatch):
+    """GET /rag (no query) uses DEMO_RAG_QUESTION, k=8, strict=true."""
+    from fastapi.testclient import TestClient
+
+    from living_evidence_graph.config import DEMO_RAG_QUESTION
+    from living_evidence_graph.server import app
+
+    captured: dict = {}
+
+    def _fake(question, k=8, strict=False, graph_slug=None):
+        captured["question"] = question
+        captured["k"] = k
+        captured["strict"] = strict
+        captured["graph_slug"] = graph_slug
+        return {
+            "question": question,
+            "retrieved_edges": [{"id": "edge:indicated:pembrolizumab:nsclc", "type": "drug_indicated_for_disease"}],
+            "bare": {"status": "ok", "text": "bare-stub", "used": False},
+            "grounded": {"status": "ok", "text": "grounded-stub", "used": False},
+            "strict": {
+                "status": "ok",
+                "text": "graph-backed clauses; KEYNOTE-888 unsupported",
+                "used": False,
+            },
+            "disclaimer": "not a medical product",
+            "k": k,
+            "graph_path": "/tmp/leg-out/graph/pembrolizumab_non_small_cell_lung_cancer.json",
+            "graph_slug": "pembrolizumab_non_small_cell_lung_cancer",
+            "gemini_used": False,
+        }
+
+    monkeypatch.setattr("living_evidence_graph.server.rag_compare", _fake)
+    client = TestClient(app)
+    r = client.get("/rag")
+    assert r.status_code == 200
+    assert captured["question"] == DEMO_RAG_QUESTION
+    assert captured["k"] == 8
+    assert captured["strict"] is True
+    body = r.json()
+    assert body["question"] == DEMO_RAG_QUESTION
+    assert body["retrieved_edges"]
+    assert "grounded" in body
+    assert "strict" in body
+    assert body["strict_requested"] is True
+    assert "KEYNOTE-799" in body["question"]
+    assert "NCT03631784" in body["question"]
+    # Handler itself must not invent extra NCT/PMID strings.
+    assert "NCT04875416" not in str(body)

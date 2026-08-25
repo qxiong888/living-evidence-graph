@@ -64,6 +64,15 @@ DEMO_DRUG_INGREDIENT = "pembrolizumab"
 DEMO_CONDITION = "non-small cell lung cancer"
 DEMO_GOAL = "pembrolizumab / Keytruda NSCLC solid tumor evidence graph"
 
+# Default /rag question (GET default + compare page). Graph-backed clauses
+# plus KEYNOTE-888 OS HR (no such edge — strict should not fabricate).
+DEMO_RAG_QUESTION = (
+    "What NSCLC indication and PDCD1 target does the graph list for Keytruda "
+    "(pembrolizumab), what does DailyMed warn about pneumonitis and hepatitis, "
+    "and what is KEYNOTE-799 (NCT03631784) in Stage III? "
+    "What is the OS hazard ratio for KEYNOTE-888?"
+)
+
 
 def gemini_api_key() -> str:
     return (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or "").strip()

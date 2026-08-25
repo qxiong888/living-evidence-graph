@@ -144,7 +144,7 @@ python scripts/demo_rag.py
 
 # HTTP API
 uvicorn living_evidence_graph.server:app --host 0.0.0.0 --port 8080
-# GET /health  ·  POST /run  ·  POST /scheduler  ·  POST /rag
+# GET /health  ·  GET /graph  ·  GET/POST /rag  ·  POST /run  ·  POST /scheduler
 # POST /library/ingest  ·  GET /library/{slug}
 ```
 
@@ -178,13 +178,16 @@ living_evidence_graph/
 
 ## RAG retrieval demo (judge beat ~30–40s)
 
-1. Ask a Keytruda / NSCLC question (`POST /rag` or `scripts/demo_rag.py`).
+1. Ask a Keytruda / NSCLC question (`GET /rag` in a browser, `POST /rag`, or `scripts/demo_rag.py`).
 2. Retriever ranks edges by **trust_score** + keyword/entity overlap (boosts triangle spine + `evidence_urls`).
 3. Show **bare Gemini** vs **grounded Gemini** (system instruction: cite only provided edges; refuse causation/rates; say when graph lacks evidence).
 4. Optional **strict / library-only**: `"strict": true` returns a third answer that uses **only** retrieved edges (or abstains with a fixed message if retrieval is empty — Gemini is not called).
 5. Point at `out/demo/rag_compare.html` — retrieval-only, no fine-tuning, no abstract dumps into training.
 
 ```bash
+# Browser / GET (default mixed question, strict=true)
+curl -s localhost:8080/rag
+
 curl -s localhost:8080/rag -H 'content-type: application/json' \
   -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?","k":8}'
 
@@ -240,6 +243,10 @@ Public service (min-instances 0, `us-central1`):
 `https://living-evidence-graph-892760629727.us-central1.run.app`
 
 ```bash
+# Browser-openable RAG (default mixed question, k=8, strict=true)
+# https://living-evidence-graph-892760629727.us-central1.run.app/rag
+curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/rag
+
 # Health (includes seeded demo node_count / edge_count)
 curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/health
 

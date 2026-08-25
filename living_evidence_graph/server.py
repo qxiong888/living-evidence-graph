@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from living_evidence_graph.agent import daily_refresh, ingest_goal
 from living_evidence_graph.changes import diff, digest_document, load_digest, load_snapshot
-from living_evidence_graph.config import DEMO_GOAL, DEMO_GRAPH_SLUG, GEMINI_MODEL
+from living_evidence_graph.config import DEMO_GOAL, DEMO_GRAPH_SLUG, DEMO_RAG_QUESTION, GEMINI_MODEL
 from living_evidence_graph.graph_store import load_graph
 from living_evidence_graph.private_ingest import ingest_directory, library_status
 from living_evidence_graph.rag import DISCLAIMER, rag_compare
@@ -32,7 +32,8 @@ app = FastAPI(
         "Default demo: pembrolizumab / Keytruda (NSCLC). "
         "Public data only — not a medical product. "
         "GET /graph = demo graph node/edge counts (seeded 14/10 on cold start). "
-        "POST /rag = retrieval-augmented answer (graph edges only; no fine-tuning). "
+        "GET /rag = same JSON in a browser (default demo question, strict=true). "
+        "POST /rag = retrieval-augmented answer (question required; graph edges only). "
         "GET /changes = human-readable change digest (what / why / sources). "
         "POST /library/ingest = personal/enterprise private folder → private graph "
         "(never mixed with the public Keytruda demo)."
@@ -234,15 +235,21 @@ def get_library(slug: str) -> JSONResponse:
     return JSONResponse(status)
 
 
-@app.post("/rag")
-def rag(body: RagBody) -> JSONResponse:
-    """Retrieve high-trust graph edges; bare vs grounded (+ optional strict) Gemini."""
-    q = (body.question or "").strip()
+def _rag_payload(
+    *,
+    question: str,
+    k: int,
+    strict: bool,
+    graph_slug: str | None,
+    library_slug: str | None,
+) -> dict[str, Any]:
+    """Shared GET/POST /rag body. POST still requires a non-empty question."""
+    q = (question or "").strip()
     if not q:
         raise HTTPException(400, "question is required")
-    slug = (body.library_slug or body.graph_slug or "").strip() or None
+    slug = (library_slug or graph_slug or "").strip() or None
     try:
-        result = rag_compare(q, k=body.k, strict=bool(body.strict), graph_slug=slug)
+        result = rag_compare(q, k=k, strict=bool(strict), graph_slug=slug)
     except Exception as e:  # noqa: BLE001
         raise HTTPException(502, f"rag failed: {e}") from e
     payload = {
@@ -255,8 +262,55 @@ def rag(body: RagBody) -> JSONResponse:
         "graph_path": result.get("graph_path"),
         "graph_slug": result.get("graph_slug") or slug,
         "gemini_used": result.get("gemini_used"),
-        "strict_requested": bool(body.strict),
+        "strict_requested": bool(strict),
     }
-    if body.strict:
+    if strict:
         payload["strict"] = result.get("strict")
-    return JSONResponse(payload)
+    return payload
+
+
+@app.post("/rag")
+def rag_post(body: RagBody) -> JSONResponse:
+    """Retrieve high-trust graph edges; bare vs grounded (+ optional strict) Gemini."""
+    return JSONResponse(
+        _rag_payload(
+            question=body.question,
+            k=body.k,
+            strict=bool(body.strict),
+            graph_slug=body.graph_slug,
+            library_slug=body.library_slug,
+        )
+    )
+
+
+@app.get("/rag")
+def rag_get(
+    question: str | None = Query(
+        default=None,
+        description="Optional; defaults to DEMO_RAG_QUESTION (compare-page mixed question)",
+    ),
+    k: int = Query(default=8, ge=1, le=25, description="Top-k edges to retrieve"),
+    strict: bool = Query(
+        default=True,
+        description="Default true so a browser shows graph-backed clauses + KEYNOTE-888 abstain",
+    ),
+    graph_slug: str | None = Query(
+        default=None,
+        description="Optional graph slug (public demo or private_* library)",
+    ),
+    library_slug: str | None = Query(
+        default=None,
+        description="Alias for graph_slug when targeting a private library",
+    ),
+) -> JSONResponse:
+    """Same JSON as POST /rag. Open in a browser; question defaults to DEMO_RAG_QUESTION."""
+    q = (question or "").strip() or DEMO_RAG_QUESTION
+    return JSONResponse(
+        _rag_payload(
+            question=q,
+            k=k,
+            strict=bool(strict),
+            graph_slug=graph_slug,
+            library_slug=library_slug,
+        )
+    )
