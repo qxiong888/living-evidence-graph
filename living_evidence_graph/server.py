@@ -65,7 +65,7 @@ app = FastAPI(
         "GET /rag = same JSON in a browser (default demo question, all ranked edges, strict=true). "
         "POST /rag = retrieval-augmented answer (question required; whole graph by default). "
         "POST /session/push = bind this demo session to the latest public graph. "
-        "GET /changes = human-readable change digest (what / why / sources). "
+        "GET /changes = human-readable change digest (what / why / ids). "
         "POST /library/ingest = personal/enterprise private folder → private graph "
         "(never mixed with the public Keytruda demo; first ingest starts a folder watcher)."
     ),
@@ -306,7 +306,7 @@ def changes(
         description="If true, re-diff prev snapshot vs current graph instead of cached digest",
     ),
 ) -> JSONResponse:
-    """Human-readable change digest: what / why / sources (+ evidence URLs)."""
+    """Human-readable change digest: what / why / ids (+ evidence URLs)."""
     slug = (goal_slug or "").strip() or ingest_goal(DEMO_GOAL)["goal_slug"]
     if recompute:
         prev = load_snapshot(slug)
