@@ -3,6 +3,8 @@
 **All Things Agentic (The Taskmaster)** submission scaffold  
 **Deadline:** 2026-08-31 17:00 PT  
 
+**Public graph is frozen until contest results are announced.** The Cloud Run demo stays on the baked 14/10 Keytruda/NSCLC snapshot (scheduler paused). Clone this repo to run it yourself.
+
 Text-first **living evidence knowledge graph** so LLMs give **more precise, checkable answers** (multimodal later).
 
 **Why it matters:** LLMs **often invent** trial/paper IDs or over-claim from memory. This **unattended Taskmaster agent** keeps a living, trust-scored evidence graph and **grounds** answers on retrieved edges — so results are auditable, not free-form guesses. After you set a goal, it runs by itself (daily fetch → graph refresh → change digest → grounded/strict RAG) without babysitting. Still not clinical advice; FAERS = reports not rates; no causation claims.
