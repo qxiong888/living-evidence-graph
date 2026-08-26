@@ -28,7 +28,7 @@ Text-first **living evidence knowledge graph** so LLMs give **more precise, chec
 
 **Input → result** (not “build a graph and stop”):
 
-1. **You enter a goal** — drug + indication / research question (demo default: Keytruda / pembrolizumab + NSCLC).
+1. **Set a goal** — the **public demo in this repo is Keytruda / pembrolizumab + NSCLC** (not a generic “any drug” CLI). For your own files, use **personal** or **enterprise** and point at a folder.
 2. **Unattended Taskmaster builds & daily-refreshes the living graph** — Cloud Scheduler → `POST /scheduler` (job `leg-daily-keytruda`); fetches public APIs (or personal/enterprise corpora in private modes), scores credibility, emits change digests — **no human click every day**.
 3. **You ask / automate against the graph and get better LLM results:**
    - **Grounded answers** (`POST /rag`) — public graphs inject the **whole living graph**, ranked (demo Keytruda/NSCLC = all 10). Personal libraries default `k=32`; enterprise default `k=128`. `k` is optional; `0` / `all` / `null` = full graph. Never invent edges if the graph is smaller than `k`.
@@ -120,36 +120,112 @@ Full detail: [LICENSES.md](LICENSES.md).
 
 ---
 
-## Local spin-up
+## Clone and run
+
+**Python 3.11+** (Docker uses 3.12). Every command below is from the **repo root** after clone.
 
 ```bash
-cd /workspace/living-evidence-graph
-python -m venv .venv && source .venv/bin/activate
+git clone https://github.com/qxiong888/living-evidence-graph.git
+cd living-evidence-graph
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env   # optional: set GEMINI_API_KEY from AI Studio
+cp .env.example .env
+# optional: GEMINI_API_KEY from https://aistudio.google.com/apikey
+# Tests, graph build, and /rag retrieval work without a key.
+# Bare / grounded / strict prose needs the key (otherwise status=gemini_skipped).
 
-# Unit tests (credibility + RAG retriever; no live Gemini required)
 pytest tests/ -q
+```
 
-# One-pass demo (live APIs with timeout; fixtures only for CT/PubMed/openFDA;
-# DailyMed / Europe PMC / Open Targets / ChEMBL skip on failure — no invented IDs)
+Keep using this directory for `uvicorn` and `python -m living_evidence_graph.*` so the package imports.
+
+### Public (contest demo — Keytruda / NSCLC only)
+
+This repo’s public graph is **pembrolizumab / Keytruda · NSCLC**. There is no `--drug` / `--indication` flag. `POST /run?goal=...` still refreshes that same vertical.
+
+```bash
+# optional live rebuild of that vertical (needs network; sources skip on failure — no invented IDs)
 python scripts/demo_local.py
 # → out/demo/demo_card.html + demo_card.json
 # → out/graph/pembrolizumab_non_small_cell_lung_cancer.json
 
-# RAG retrieval compare (bare Gemini vs graph-grounded; works without API key)
 python scripts/demo_rag.py
 # → out/demo/rag_compare.html + rag_compare.json
 # Answers labeled gemini_skipped if GEMINI_API_KEY / GOOGLE_API_KEY unset
 
-# HTTP API
 uvicorn living_evidence_graph.server:app --host 0.0.0.0 --port 8080
+# cold start seeds fixtures/demo_graph/ (14 nodes / 10 edges) if the slug file is missing
 # GET /  ·  GET /compare  ·  GET /update  ·  GET /push
 # GET /health  ·  GET /graph  ·  GET/POST /rag  ·  POST /session/push  ·  GET /session
 # POST /run  ·  POST /scheduler  ·  POST /library/ingest  ·  GET /library/{slug}
 ```
 
-**Assumed drug strings for the demo:** brand `Keytruda`, ingredient `pembrolizumab`, condition `non-small cell lung cancer`.
+```bash
+curl -s localhost:8080/health
+curl -s localhost:8080/graph
+curl -s localhost:8080/rag
+# GET /rag: default mixed question, omitted k = all public edges, strict=true
+
+curl -s localhost:8080/rag -H 'content-type: application/json' \
+  -d '{"question":"What high-trust edges link pembrolizumab to NSCLC?","strict":true}'
+
+# refresh the same public demo (goal is a query param, not JSON)
+curl -s -X POST 'localhost:8080/run'
+```
+
+`POST /rag` fields: `question`, `k`, `strict`, `graph_slug`, `library_slug`, `session_id`. There is no `mode` or `graph_id` field. JSON `{"goal":"..."}` is only for `POST /scheduler`.
+
+**k (public):** omitted = every ranked edge. `"k": 0` / `"all"` / `null` = full graph. Opt into `k` without a number → `k=32`.
+
+### Personal (your folder)
+
+Point the Taskmaster at a **local directory**. Separate from the public Keytruda graph — never mixed.
+
+Supported files: `.txt` `.md` `.html` `.csv` `.json` `.pdf` (via pypdf).
+
+**First ingest registers the folder.** While **uvicorn** or CLI `--watch` is running, add / edit / delete auto-rebuilds the private graph (debounced ~1s). Cloud Run’s public demo has no user folders.
+
+```bash
+# one-shot
+python -m living_evidence_graph.private_ingest \
+  --dir /path/to/my-papers --slug my-lib --mode personal
+
+# first ingest, then auto-refresh until Ctrl-C
+python -m living_evidence_graph.private_ingest \
+  --dir /path/to/my-papers --slug my-lib --mode personal --watch
+```
+
+Or with the server already up:
+
+```bash
+curl -s localhost:8080/library/ingest -H 'content-type: application/json' \
+  -d '{"path":"/path/to/my-papers","slug":"my-lib","mode":"personal"}'
+curl -s localhost:8080/library/my-lib
+curl -s localhost:8080/rag -H 'content-type: application/json' \
+  -d '{"question":"What does my library say about PDCD1?","strict":true,"library_slug":"my-lib"}'
+```
+
+Slug is normalized (`my-lib` → on-disk `out/graph/private_my_lib.json` + `.manifest.json`). Later refreshes write `out/graph/private_my_lib.changes.json`.
+
+**k (personal):** omitted = 32. `"k": 0` / `"all"` / `null` = full private graph.
+
+Private edges cite **file paths only** (no fake PMIDs/NCTs).
+
+### Enterprise (your org vault)
+
+Same engine as personal. `--mode enterprise` sets `meta.mode` so omitted `k` is **128**.
+
+```bash
+python -m living_evidence_graph.private_ingest \
+  --dir /path/to/org-vault --slug org-lib --mode enterprise --watch
+
+curl -s localhost:8080/library/ingest -H 'content-type: application/json' \
+  -d '{"path":"/path/to/org-vault","slug":"org-lib","mode":"enterprise"}'
+curl -s localhost:8080/rag -H 'content-type: application/json' \
+  -d '{"question":"What does the vault say about PDCD1?","strict":true,"library_slug":"org-lib"}'
+```
+
+**k (enterprise):** omitted = 128. `"k": 0` / `"all"` / `null` = full graph.
 
 ---
 
@@ -201,46 +277,6 @@ curl -s localhost:8080/rag -H 'content-type: application/json' \
 ```
 
 
-## Personal / Enterprise private graph
-
-Point the Taskmaster at a **local directory** of documents to build a **private** living evidence graph (separate from the public Keytruda / API demo — never mixed).
-
-Supported files (MVP): `.txt` `.md` `.html` `.csv` `.json` `.pdf` (via pypdf). Local absolute path on the machine running the service is enough for the contest demo narrative — no cloud storage required.
-
-**First ingest registers the folder.** After that, while **uvicorn** (or the CLI `--watch` process) is running, add / edit / delete of supported files **auto-rebuilds** the private graph — you do not re-run ingest by hand. Debounced (~1s) so a burst of writes is one refresh.
-
-The **public** Keytruda/NSCLC graph watches **public API sources only** — it has nothing to do with local directories. Auto-watch is **private libraries only** and never attaches to `pembrolizumab_non_small_cell_lung_cancer`. The **Cloud Run public demo has no user folders**; watchers start only when `watched_path` is a real directory on the machine, so they no-op there. The baked 14/10 public demo is never mixed with private libraries.
-
-**CLI:**
-```bash
-# One-shot ingest (still works). Leave the server or --watch running for auto-refresh.
-python -m living_evidence_graph.private_ingest --dir /path/to/my-papers --slug my-lib --mode personal
-
-# First ingest, then stay running and auto-refresh until Ctrl-C
-python -m living_evidence_graph.private_ingest --dir /path/to/my-papers --slug my-lib --mode personal --watch
-
-# enterprise boundary flag:
-python -m living_evidence_graph.private_ingest --dir /path/to/org-vault --slug org-lib --mode enterprise --watch
-```
-
-The first run writes `out/graph/private_<slug>.json` + `.manifest.json` (includes `watched_path` + per-file size/mtime). Later auto-refresh snapshots the prior graph and emits a change digest (`what` / `why` / `sources` = file paths) at `out/graph/private_<slug>.changes.json`.
-
-**HTTP (first ingest registers the folder; uvicorn keeps watching):**
-```bash
-# First ingest — starts a background watcher for that path
-curl -s localhost:8080/library/ingest -H 'content-type: application/json' \
-  -d '{"path":"/path/to/my-papers","slug":"my-lib","mode":"personal"}'
-
-# Status (auto_refresh / watching are true while the watcher is live)
-curl -s localhost:8080/library/my-lib
-
-# Strict answers only from that private graph (abstain if empty / no hits)
-curl -s localhost:8080/rag -H 'content-type: application/json' \
-  -d '{"question":"What does my library say about PDCD1?","strict":true,"library_slug":"my-lib"}'
-```
-
-Private edges cite **file paths only** (no fake PMIDs/NCTs). Not a medical product; not medical certainty.
-
 ## Safety / legal posture
 
 - Public **APIs** only (no scraping as primary path) · no PHI · not a medical product  
@@ -283,7 +319,7 @@ curl -sS https://living-evidence-graph-892760629727.us-central1.run.app/rag \
   -d '{"question":"What NSCLC indication and PDCD1 target does the graph list for Keytruda (pembrolizumab), what does DailyMed warn about pneumonitis and hepatitis, and what is KEYNOTE-799 (NCT03631784) in Stage III? What is the OS hazard ratio for KEYNOTE-888?","strict":true}'
 ```
 
-Local twin: `python -m scripts.demo_rag` → `out/demo/rag_compare.html` (and live pages B/C: `graph_update_before_after.html`, `llm_imports_graph.html`).
+Local twin: `python scripts/demo_rag.py` → `out/demo/rag_compare.html`. Live pages: `/compare`, `/update`, `/push`.
 
 **One-click push (live at `/push`):** unattended agent updates the living graph → notifies the user (“Living Evidence Graph updated — N edges. Push into your LLM?”) → user clicks **Import / Push to LLM** → `POST /session/push` binds **this demo session** to the public Keytruda slug (cookie + `session_id`; `GET /rag` and `POST /rag` honor it). Push enables **two modes** the user chooses: **Grounded** (retrieve/inject edges as RAG context — not graph-only) and **Strict** (answers only from the graph; abstain if empty). No file download and no manual import steps — still RAG, not fine-tuning. Push is not “answers only from the graph” unless they pick Strict. Compare (`/compare`) and first-build update (`/update`) are live HTML on the same service.
 

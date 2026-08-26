@@ -74,7 +74,7 @@ _PHRASE_HIGHLIGHTS: list[tuple[str, str]] = [
     ("KEYNOTE 888", "red"),
 ]
 
-# Verified 2026-08-25 (Reed + ClinicalTrials.gov): bare paired
+# Verified 2026-08-25 (ClinicalTrials.gov): bare paired
 # KEYNOTE-888 = NCT04875416. That PAIR does not exist. NCT04875416 is
 # PGB2 (ALS/HSP/PLS/PMA/FTD, University of Miami) — not Keytruda NSCLC.
 # Do not claim the NCT string is unregistered. Do not invent an HR.
