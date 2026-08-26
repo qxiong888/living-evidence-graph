@@ -141,7 +141,7 @@ Keep using this directory for `uvicorn` and `python -m living_evidence_graph.*` 
 
 ### Public (contest demo — Keytruda / NSCLC only)
 
-This repo’s public graph is **pembrolizumab / Keytruda · NSCLC**. There is no `--drug` / `--indication` flag. `POST /run?goal=...` still refreshes that same vertical.
+**Cloud Run vs this repo.** The hosted contest demo ([Cloud Run](https://living-evidence-graph-892760629727.us-central1.run.app)) is **frozen** at the baked 14-node / 10-edge Keytruda/NSCLC graph until contest results are announced. Daily refresh is paused so the live pages stay on that snapshot. **This GitHub checkout is what you run yourself** — clone it, start the server locally, and use personal/enterprise to point at your own folder. The public-API ingest path in this repo is still the contest Keytruda/NSCLC vertical (no generic `--drug` / `--indication` yet); `POST /run?goal=...` refreshes that same vertical, not a new drug.
 
 ```bash
 # optional live rebuild of that vertical (needs network; sources skip on failure — no invented IDs)
@@ -286,6 +286,8 @@ curl -s localhost:8080/rag -H 'content-type: application/json' \
 
 
 ## Judges: hit live `/rag` on Cloud Run
+
+The live service is **frozen** at the baked 14/10 Keytruda/NSCLC graph until contest results are announced (scheduler paused). To run your own instance or point at your own files, use this repo — see [Clone and run](#clone-and-run).
 
 Public service (min-instances 0, `us-central1`):
 
