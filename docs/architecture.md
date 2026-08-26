@@ -55,7 +55,7 @@ flowchart LR
 | `ingest_goal` | Parse goal → brand / ingredient / condition |
 | `fetch_sources` | Live seven-source fetch (skip/error structured; no invented IDs) |
 | `extract_edges` | Map payloads → nodes/edges (Gemini JSON structure when keyed; rules fallback) |
-| `upsert_graph` | Merge by id → local JSON (+ Firestore stub) |
+| `upsert_graph` | Merge by id → local JSON (optional Firestore) |
 | `recompute_trust` | Apply locked credibility formula |
 | `daily_refresh` | Full pipeline for Scheduler |
 | `rag` (`rag.py`) | Top-k edge retrieve → bare vs grounded Gemini |
