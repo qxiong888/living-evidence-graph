@@ -508,7 +508,7 @@ def _to_markdown(doc: Mapping[str, Any]) -> str:
         "",
         str(doc.get("disclaimer") or ""),
         "",
-        "| what | why | ref | sources |",
+        "| what | why | ref | ids |",
         "|---|---|---|---|",
     ]
     for e in doc.get("changes") or []:
