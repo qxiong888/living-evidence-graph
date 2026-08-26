@@ -1,6 +1,6 @@
 # Living Evidence Graph
 
-**All Things Agentic (The Taskmaster)** submission scaffold  
+**All Things Agentic (The Taskmaster)** submission  
 **Deadline:** 2026-08-31 17:00 PT  
 
 **Public graph is frozen until contest results are announced.** The Cloud Run demo stays on the baked 14/10 Keytruda/NSCLC snapshot (scheduler paused). Clone this repo to run it yourself.
@@ -86,7 +86,7 @@ flowchart TB
   CT & PM & FDA & DM & EP --> CORR[corroboration layers]
   SPINE & CORR --> EX[extract triples]
   EX --> TR[credibility trust scores]
-  TR --> STORE[out/graph JSON + Firestore stub]
+  TR --> STORE[out/graph JSON + optional Firestore]
   Sched[Cloud Scheduler daily] --> Run[Cloud Run FastAPI /scheduler]
   Run --> ADK
 ```
@@ -242,7 +242,7 @@ living_evidence_graph/
   rag.py            # retrieve all ranked edges (optional k cap) → bare / grounded / strict
   extract.py        # triples (Gemini JSON structure when keyed; else rules)
   credibility.py    # pure trust formula
-  graph_store.py    # local JSON + Firestore stub
+  graph_store.py    # local JSON + optional Firestore
   tools/
     fetch_clinicaltrials.py
     fetch_pubmed.py
