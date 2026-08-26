@@ -1,6 +1,6 @@
 # Licenses & attribution (upstream data)
 
-This repository’s **code** is a contest scaffold. Upstream **data** remains under each provider’s terms. This project does **not** claim endorsement by FDA, NLM, NIH, NCBI, Open Targets, EMBL-EBI, ChEMBL, or Europe PMC.
+This repository’s **code** is the contest submission. Upstream **data** remains under each provider’s terms. This project does **not** claim endorsement by FDA, NLM, NIH, NCBI, Open Targets, EMBL-EBI, ChEMBL, or Europe PMC.
 
 ## Upstream sources
 
