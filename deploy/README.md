@@ -1,4 +1,4 @@
-# Deploy notes (do **not** run in this scaffold pass)
+# Deploy notes
 
 Contest defaults:
 
