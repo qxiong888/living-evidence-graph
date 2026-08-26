@@ -36,7 +36,7 @@ Text-first **living evidence knowledge graph** so LLMs give **more precise, chec
    - **Grounded answers** (`POST /rag`) — public graphs inject the **whole living graph**, ranked (demo Keytruda/NSCLC = all 10). Personal libraries default `k=32`; enterprise default `k=128`. `k` is optional; `0` / `all` / `null` = full graph. Never invent edges if the graph is smaller than `k`.
    - **Strict / library-only mode** (`POST /rag` with `"strict": true`) — answers **only** from the living graph’s configured sources (public demo: the 7 APIs) **or** a personal/enterprise private library graph. If nothing relevant is retrieved → reply clearly that **no related information was found** and **do not invent** any other answer (no bare-model freestyle). Not a claim of medical certainty — only from the evidence graph / library; abstain if missing.
    - **Auditable citations** — NCT / PMID / label / KB links on every used edge; FAERS = **reports**, not rates; **not** causation or clinical advice.
-   - **Freshness / autonomy** — daily unattended refresh + change digest (**what** / **why** / **sources**) so answers track new public evidence without babysitting.
+   - **Freshness / autonomy** — daily unattended refresh + change digest (**what** / **why** / **ids**) so answers track new public evidence without babysitting.
 
 Same loop in all three modes (Public / Personal private / Enterprise private); only the data boundary changes.
 
